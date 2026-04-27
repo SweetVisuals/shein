@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Image as ImageIcon, Tag, Hash, Save, LayoutDashboard, Trash2, List, X, Archive, Mail, MoreHorizontal, ChevronLeft, Star, Truck, ChevronDown, ThumbsUp, ThumbsDown, Check, Smile, Reply, Forward } from 'lucide-react';
+import { Plus, Image as ImageIcon, Tag, Hash, Save, LayoutDashboard, Trash2, List, X, Archive, Mail, MoreHorizontal, ChevronLeft, Star, Truck, ChevronDown, ThumbsUp, ThumbsDown, Check, Smile, Reply, Forward, User } from 'lucide-react';
 import { DesktopLayout } from '../components/layout/DesktopLayout';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { useAppContext } from '../context/AppContext';
@@ -7,23 +7,53 @@ import { supabase } from '../supabase';
 import { useEffect } from 'react';
 
 export const AdminScreen = ({ setScreen }: { setScreen: (s: string) => void }) => {
-  const { products, addProduct, deleteProduct, updateProduct, cart, refetchProducts } = useAppContext();
-  const [view, setView] = useState<'LIST' | 'CREATE' | 'INVOICE'>('INVOICE');
-  const [editingImageId, setEditingImageId] = useState<string | null>(null);
+  const { 
+    products, addProduct, deleteProduct, updateProduct, 
+    categories, updateCategory, 
+    homepageSections, updateHomepageSection,
+    user, updateUser
+  } = useAppContext();
   
-  // Quick Edit Modal
-  const [editModalProduct, setEditModalProduct] = useState<any | null>(null);
-  const [editTitle, setEditTitle] = useState('');
-  const [editImg, setEditImg] = useState('');
+  const [view, setView] = useState<'LIST' | 'CREATE' | 'INVOICE' | 'CATEGORIES' | 'HOMEPAGE' | 'PROFILE'>('HOMEPAGE');
+  
+  // Homepage Management State
+  const [editingSection, setEditingSection] = useState<any | null>(null);
+  const [sectionItems, setSectionItems] = useState<any[]>([]);
 
-  // Create form state
+  // Profile Management State
+  const [profName, setProfName] = useState(user?.name || '');
+  const [profEmail, setProfEmail] = useState(user?.email || '');
+  const [profBalance, setProfBalance] = useState(user?.walletBalance || 0);
+  const [profCartDiscount, setProfCartDiscount] = useState(user?.cartDisplayDiscount || '-£43.04');
+
+  // Create Product form state
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [seller, setSeller] = useState('');
   const [category, setCategory] = useState('');
   const [savedMessage, setSavedMessage] = useState('');
+
+  // Edit Modal State
+  const [editModalProduct, setEditModalProduct] = useState<any | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editImg, setEditImg] = useState('');
+
+  // Category Edit state
+  const [editingCategory, setEditingCategory] = useState<any | null>(null);
+  const [catImg, setCatImg] = useState('');
+
+  // Invoice state
   const [latestOrder, setLatestOrder] = useState<any>(null);
+
+  useEffect(() => {
+    if (user) {
+      setProfName(user.name || '');
+      setProfEmail(user.email || '');
+      setProfBalance(user.walletBalance || 0);
+      setProfCartDiscount(user.cartDisplayDiscount || '-£43.04');
+    }
+  }, [user]);
 
   useEffect(() => {
     if (view === 'INVOICE') {
@@ -35,7 +65,7 @@ export const AdminScreen = ({ setScreen }: { setScreen: (s: string) => void }) =
     try {
       const { data, error } = await supabase
         .from('orders')
-        .select('*, order_items(*, products(*)), users(name, email)')
+        .select('*, order_items(*, products(*)), users(first_name, last_name, email)')
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
@@ -45,19 +75,6 @@ export const AdminScreen = ({ setScreen }: { setScreen: (s: string) => void }) =
     } catch (err) {
       console.error('Error fetching latest order:', err);
     }
-  };
-
-  const openEditModal = (p: any) => {
-     setEditModalProduct(p);
-     setEditTitle(p.title);
-     setEditImg(p.img);
-  };
-
-  const saveEdit = () => {
-     if (editModalProduct) {
-        updateProduct(editModalProduct.id, { title: editTitle, img: editImg });
-        setEditModalProduct(null);
-     }
   };
 
   const handleSaveCreate = async (e: React.FormEvent) => {
@@ -71,7 +88,7 @@ export const AdminScreen = ({ setScreen }: { setScreen: (s: string) => void }) =
         img: imageUrl
       });
 
-      setSavedMessage('Product created successfully in Supabase!');
+      setSavedMessage('Product created successfully!');
       setTimeout(() => {
         setSavedMessage('');
         setView('LIST');
@@ -79,15 +96,67 @@ export const AdminScreen = ({ setScreen }: { setScreen: (s: string) => void }) =
       setTitle('');
       setPrice('');
       setImageUrl('');
-      setSeller('');
-      setCategory('');
     } catch (err) {
       console.error('Error creating product:', err);
-      alert('Failed to save product to database.');
     }
   };
 
-  const AdminContent = () => (
+  const saveCategoryEdit = async () => {
+    if (editingCategory) {
+      await updateCategory(editingCategory.id, { image_url: catImg });
+      setEditingCategory(null);
+      alert('Category updated successfully!');
+    }
+  };
+
+  const openEditModal = (p: any) => {
+     setEditModalProduct(p);
+     setEditTitle(p.title);
+     setEditImg(p.img);
+  };
+
+  const saveEdit = async () => {
+     if (editModalProduct) {
+        await updateProduct(editModalProduct.id, { title: editTitle, img: editImg });
+        setEditModalProduct(null);
+        alert('Product updated successfully!');
+     }
+  };
+
+  const saveProfile = async () => {
+    if (user) {
+      const names = profName.split(' ');
+      await updateUser(user.id, { 
+        first_name: names[0] || '', 
+        last_name: names.slice(1).join(' ') || '',
+        email: profEmail,
+        wallet_balance: profBalance,
+        cart_display_discount: profCartDiscount
+      });
+      alert('Profile updated!');
+    }
+  };
+
+  const openSectionEdit = (section: any) => {
+    setEditingSection(section);
+    setSectionItems(section.items ? [...section.items] : []);
+  };
+
+  const saveSection = async () => {
+    if (editingSection) {
+      await updateHomepageSection(editingSection.id, { items: sectionItems });
+      setEditingSection(null);
+      alert('Homepage section updated successfully!');
+    }
+  };
+
+  const updateItemField = (index: number, field: string, value: string) => {
+    const newItems = [...sectionItems];
+    newItems[index] = { ...newItems[index], [field]: value };
+    setSectionItems(newItems);
+  };
+  
+  const adminContent = (
     <div className="max-w-6xl mx-auto py-4 lg:py-8 px-2 sm:px-4 lg:px-8 relative min-h-screen">
       <div className="flex items-center justify-between mb-4 lg:mb-8">
         <div className="flex items-center gap-2 lg:gap-3">
@@ -101,384 +170,231 @@ export const AdminScreen = ({ setScreen }: { setScreen: (s: string) => void }) =
 
       {/* Tabs */}
       <div className="flex space-x-4 border-b border-gray-200 mb-4 lg:mb-6 overflow-x-auto no-scrollbar">
-          <button 
-            onClick={() => setView('LIST')} 
-            className={`pb-2 lg:pb-3 text-xs lg:text-sm font-bold flex items-center gap-1 lg:gap-2 whitespace-nowrap ${view === 'LIST' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}
-          >
-            <List size={16} /> Products List
+          <button onClick={() => setView('HOMEPAGE')} className={`pb-2 lg:pb-3 text-xs lg:text-sm font-bold flex items-center gap-1 lg:gap-2 whitespace-nowrap ${view === 'HOMEPAGE' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}>
+            <LayoutDashboard size={16} /> Homepage
           </button>
-          <button 
-            onClick={() => setView('CREATE')} 
-            className={`pb-2 lg:pb-3 text-xs lg:text-sm font-bold flex items-center gap-1 lg:gap-2 whitespace-nowrap ${view === 'CREATE' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}
-          >
-            <Plus size={16} /> Add Product
+          <button onClick={() => setView('CATEGORIES')} className={`pb-2 lg:pb-3 text-xs lg:text-sm font-bold flex items-center gap-1 lg:gap-2 whitespace-nowrap ${view === 'CATEGORIES' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}>
+            <ImageIcon size={16} /> Categories
           </button>
-          <button 
-            onClick={() => setView('INVOICE')} 
-            className={`pb-2 lg:pb-3 text-xs lg:text-sm font-bold flex items-center gap-1 lg:gap-2 whitespace-nowrap ${view === 'INVOICE' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}
-          >
-            <List size={16} /> View Invoice
+          <button onClick={() => setView('LIST')} className={`pb-2 lg:pb-3 text-xs lg:text-sm font-bold flex items-center gap-1 lg:gap-2 whitespace-nowrap ${view === 'LIST' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}>
+            <List size={16} /> Products
+          </button>
+          <button onClick={() => setView('PROFILE')} className={`pb-2 lg:pb-3 text-xs lg:text-sm font-bold flex items-center gap-1 lg:gap-2 whitespace-nowrap ${view === 'PROFILE' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}>
+            <User size={16} /> Profile Settings
+          </button>
+          <button onClick={() => setView('INVOICE')} className={`pb-2 lg:pb-3 text-xs lg:text-sm font-bold flex items-center gap-1 lg:gap-2 whitespace-nowrap ${view === 'INVOICE' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}>
+            <Mail size={16} /> Invoices
           </button>
       </div>
 
-      {view === 'LIST' && (
+      {view === 'HOMEPAGE' && (
+        <div className="bg-white lg:shadow-sm rounded-sm lg:border border-gray-200 overflow-hidden">
+          <div className="px-4 lg:px-6 py-3 lg:py-4 border-b border-gray-200 bg-gray-50">
+              <h2 className="text-sm lg:text-lg font-bold text-gray-900">Manage Homepage Grid</h2>
+          </div>
+          <div className="p-4 lg:p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {homepageSections?.map((section) => (
+              <div key={section.id} className="border border-gray-200 rounded-sm p-4 bg-gray-50 flex flex-col gap-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-bold text-gray-800">{section.title}</h3>
+                  <button onClick={() => openSectionEdit(section)} className="bg-black text-white px-3 py-1.5 text-[10px] font-bold rounded-sm uppercase tracking-wider">
+                    Edit Content
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {section.items?.map((item: any, i: number) => (
+                    <div key={i} className="aspect-[3/4] bg-white rounded-sm border border-gray-200 overflow-hidden">
+                      <img src={item.img} className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {view === 'PROFILE' && (
+        <div className="bg-white lg:shadow-sm rounded-sm lg:border border-gray-200 overflow-hidden max-w-2xl mx-auto w-full">
+          <div className="px-4 lg:px-6 py-3 lg:py-4 border-b border-gray-200 bg-gray-50">
+              <h2 className="text-sm lg:text-lg font-bold text-gray-900">User Profile Settings</h2>
+          </div>
+          <div className="p-4 lg:p-8 space-y-6">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Full Name</label>
+                <input 
+                  type="text" 
+                  value={profName} 
+                  onChange={(e) => setProfName(e.target.value)} 
+                  className="w-full p-2.5 border border-gray-300 rounded-sm focus:ring-black focus:border-black" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Email Address</label>
+                <input 
+                  type="email" 
+                  value={profEmail} 
+                  onChange={(e) => setProfEmail(e.target.value)} 
+                  className="w-full p-2.5 border border-gray-300 rounded-sm focus:ring-black focus:border-black" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Wallet Balance (£)</label>
+                <input 
+                  type="number" 
+                  value={profBalance} 
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setProfBalance(isNaN(val) ? 0 : val);
+                  }} 
+                  className="w-full p-2.5 border border-gray-300 rounded-sm focus:ring-black focus:border-black" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Cart Discount Text (e.g. -£43.04)</label>
+                <input 
+                  type="text" 
+                  value={profCartDiscount} 
+                  onChange={(e) => setProfCartDiscount(e.target.value)} 
+                  className="w-full p-2.5 border border-gray-300 rounded-sm focus:ring-black focus:border-black" 
+                />
+              </div>
+            </div>
+            <button onClick={saveProfile} className="w-full py-3 bg-black text-white font-bold rounded-sm shadow-md hover:bg-gray-800 transition-colors">
+              Save Profile Changes
+            </button>
+          </div>
+        </div>
+      )}
+
+      {view === 'CATEGORIES' && (
         <div className="bg-white lg:shadow-sm rounded-sm lg:border border-gray-200 overflow-hidden">
           <div className="px-2 lg:px-6 py-2 lg:py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-              <h2 className="text-sm lg:text-lg font-bold text-gray-900">All Products</h2>
-              <span className="text-xs lg:text-sm text-gray-500">{products.length} products total</span>
+              <h2 className="text-sm lg:text-lg font-bold text-gray-900">Manage Categories</h2>
+              <span className="text-xs lg:text-sm text-gray-500">{categories?.length} categories</span>
           </div>
-          {products.length === 0 ? (
-              <div className="p-8 lg:p-12 text-center text-sm lg:text-base text-gray-500">
-                No products available. Switch to "Add Product" to create one.
+          <div className="p-4 lg:p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {categories?.map((cat) => (
+              <div key={cat.id} className="flex flex-col border border-gray-100 rounded-sm overflow-hidden bg-white shadow-sm">
+                <div className="aspect-square relative bg-gray-50">
+                  <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover" />
+                </div>
+                <div className="p-2 flex flex-col gap-2">
+                  <span className="text-xs font-bold text-gray-900 truncate">{cat.name}</span>
+                  <button 
+                    onClick={() => { setEditingCategory(cat); setCatImg(cat.image_url); }}
+                    className="w-full py-1.5 bg-gray-100 text-gray-700 text-[10px] font-bold rounded-sm hover:bg-gray-200"
+                  >
+                    Edit Image
+                  </button>
+                </div>
               </div>
-          ) : (
-              <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 p-2 lg:p-6 bg-gray-50">
-                {products.map((p) => (
-                  <div key={p.id} onClick={() => openEditModal(p)} className="bg-white rounded-sm border border-gray-200 overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                      <div className="aspect-[3/4] relative bg-gray-100">
-                        <img src={p.img} alt={p.title} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="p-1 lg:p-2 flex-grow flex flex-col justify-start">
-                        <div className="text-[9px] lg:text-xs font-bold text-gray-900 line-clamp-2 leading-tight" title={p.title}>{p.title}</div>
-                      </div>
-                  </div>
-                ))}
-              </div>
-          )}
+            ))}
+          </div>
+        </div>
+      )}
+
+      {view === 'LIST' && (
+        <div className="bg-white lg:shadow-sm rounded-sm lg:border border-gray-200 overflow-hidden">
+           <div className="px-2 lg:px-6 py-2 lg:py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+              <h2 className="text-sm lg:text-lg font-bold text-gray-900">All Products</h2>
+              <button onClick={() => setView('CREATE')} className="bg-black text-white px-3 py-1.5 text-xs font-bold rounded-sm">+ Add New</button>
+           </div>
+           <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2 p-2 lg:p-6">
+              {products?.map(p => (
+                <div key={p.id} onClick={() => openEditModal(p)} className="aspect-[3/4] border border-gray-200 rounded-sm overflow-hidden bg-white cursor-pointer shadow-sm hover:shadow-md">
+                   <img src={p.img} className="w-full h-full object-cover" />
+                </div>
+              ))}
+           </div>
         </div>
       )}
 
       {view === 'CREATE' && (
         <div className="bg-white lg:shadow-sm rounded-sm lg:border border-gray-200 overflow-hidden">
           <div className="px-4 lg:px-6 py-3 lg:py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-            <h2 className="text-sm lg:text-lg font-bold text-gray-900">Create New Product Card</h2>
+            <h2 className="text-sm lg:text-lg font-bold text-gray-900">Create New Product</h2>
           </div>
           
           <div className="p-4 lg:p-6">
             {savedMessage && (
-              <div className="mb-4 lg:mb-6 bg-green-50 text-green-700 p-3 lg:p-4 rounded-md text-xs lg:text-sm border border-green-200 flex items-center gap-2">
-                <span className="font-bold">✓</span> {savedMessage}
+              <div className="mb-4 bg-green-50 text-green-700 p-3 rounded-md text-xs border border-green-200">
+                {savedMessage}
               </div>
             )}
 
-            <form onSubmit={handleSaveCreate} className="space-y-4 lg:space-y-6">
-              <div className="grid grid-cols-1 gap-y-4 lg:gap-y-6 gap-x-4 lg:gap-x-6 sm:grid-cols-2">
-                
+            <form onSubmit={handleSaveCreate} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
-                  <label htmlFor="title" className="block text-xs lg:text-sm font-bold text-gray-700">Product Title</label>
-                  <div className="mt-1 relative rounded-sm shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-2 lg:pl-3 flex items-center pointer-events-none">
-                      <Tag size={14} className="text-gray-400" />
-                    </div>
-                    <input
-                      type="text"
-                      id="title"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className="block w-full pl-8 lg:pl-10 pr-3 py-2 border border-gray-300 rounded-sm text-xs lg:text-sm focus:ring-black focus:border-black"
-                      placeholder="e.g., Casual Striped T-Shirt"
-                      required
-                    />
-                  </div>
+                  <label className="block text-xs font-bold text-gray-700">Title</label>
+                  <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1 block w-full p-2 border border-gray-300 rounded-sm text-xs" required />
                 </div>
-
                 <div>
-                  <label htmlFor="price" className="block text-xs lg:text-sm font-bold text-gray-700">Price (£)</label>
-                  <div className="mt-1 relative rounded-sm shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-2 lg:pl-3 flex items-center pointer-events-none">
-                      <span className="text-gray-400 text-xs lg:text-sm">£</span>
-                    </div>
-                    <input
-                      type="number"
-                      id="price"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      step="0.01"
-                      className="block w-full pl-6 lg:pl-8 pr-3 py-2 border border-gray-300 rounded-sm text-xs lg:text-sm focus:ring-black focus:border-black"
-                      placeholder="0.00"
-                      required
-                    />
-                  </div>
+                  <label className="block text-xs font-bold text-gray-700">Price (£)</label>
+                  <input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="mt-1 block w-full p-2 border border-gray-300 rounded-sm text-xs" required />
                 </div>
-
                 <div>
-                  <label htmlFor="seller" className="block text-xs lg:text-sm font-bold text-gray-700">Seller / Brand Name</label>
-                  <div className="mt-1 relative rounded-sm shadow-sm">
-                    <input
-                      type="text"
-                      id="seller"
-                      value={seller}
-                      onChange={(e) => setSeller(e.target.value)}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-sm text-xs lg:text-sm focus:ring-black focus:border-black"
-                      placeholder="e.g., SHEIN MOD"
-                    />
-                  </div>
+                  <label className="block text-xs font-bold text-gray-700">Image URL</label>
+                  <input type="url" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="mt-1 block w-full p-2 border border-gray-300 rounded-sm text-xs" required />
                 </div>
-
-                <div>
-                  <label htmlFor="category" className="block text-xs lg:text-sm font-bold text-gray-700">Category</label>
-                  <div className="mt-1 relative rounded-sm shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-2 lg:pl-3 flex items-center pointer-events-none">
-                      <Hash size={14} className="text-gray-400" />
-                    </div>
-                    <select
-                      id="category"
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      className="block w-full pl-8 lg:pl-10 pr-3 py-2 border border-gray-300 rounded-sm text-xs lg:text-sm focus:ring-black focus:border-black"
-                      required
-                    >
-                      <option value="" disabled>Select category</option>
-                      <option value="clothing">Clothing</option>
-                      <option value="accessories">Accessories</option>
-                      <option value="home">Home & Living</option>
-                      <option value="electronics">Electronics</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label htmlFor="imageUrl" className="block text-xs lg:text-sm font-bold text-gray-700">Asset Image URL</label>
-                  <div className="mt-1 flex rounded-sm shadow-sm">
-                    <div className="relative flex items-stretch flex-grow focus-within:z-10">
-                      <div className="absolute inset-y-0 left-0 pl-2 lg:pl-3 flex items-center pointer-events-none">
-                        <ImageIcon size={14} className="text-gray-400" />
-                      </div>
-                      <input
-                        type="url"
-                        id="imageUrl"
-                        value={imageUrl}
-                        onChange={(e) => setImageUrl(e.target.value)}
-                        className="block w-full pl-8 lg:pl-10 pr-3 py-2 border border-gray-300 rounded-none rounded-l-sm text-xs lg:text-sm focus:ring-black focus:border-black"
-                        placeholder="https://example.com/image.jpg"
-                        required
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setImageUrl('https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=400&auto=format&fit=crop')}
-                      className="-ml-px relative inline-flex items-center space-x-2 px-3 lg:px-4 py-2 border border-gray-300 text-xs lg:text-sm font-bold text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-r-sm"
-                    >
-                      <span>Test Image</span>
-                    </button>
-                  </div>
-                </div>
-
               </div>
-              
-              {/* Image Preview */}
-              {imageUrl && (
-                <div className="mt-4 lg:mt-6 border-t border-gray-100 pt-4 lg:pt-6">
-                  <p className="block text-xs lg:text-sm font-bold text-gray-700 mb-2 lg:mb-3">Asset Preview / Card Generation Check</p>
-                  <div className="w-[100px] lg:w-[120px] h-[133px] lg:h-[160px] border border-gray-200 rounded-sm overflow-hidden bg-gray-50 flex items-center justify-center relative">
-                    <img 
-                      src={imageUrl} 
-                      alt="Preview" 
-                      className="w-full h-full object-cover" 
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/200x300?text=Invalid+Image';
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="pt-4 lg:pt-6 border-t border-gray-200 flex justify-end">
-                <button
-                  type="submit"
-                  className="bg-black text-white px-6 lg:px-8 py-2.5 lg:py-3 rounded-sm font-bold text-xs lg:text-sm flex items-center gap-2 hover:bg-gray-800 transition-colors"
-                >
-                  <Save size={16} />
-                  Save Asset & Product
-                </button>
-              </div>
+              <button type="submit" className="bg-black text-white px-6 py-2.5 rounded-sm font-bold text-xs uppercase tracking-wider">Save Product</button>
             </form>
           </div>
         </div>
       )}
 
       {view === 'INVOICE' && (
-        <div className="bg-[#fff] md:bg-[#f0f2f5] lg:min-h-screen font-sans flex flex-col pt-0 sm:pt-4 sm:px-4 items-center w-full">
-            <div className="bg-white w-[400px] max-w-full overflow-hidden flex flex-col relative pb-20 shadow-sm sm:border border-gray-200">
-               {/* Gmail Title Bar Component */}
-               <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 z-10 w-full">
-                  <div className="flex items-center gap-4">
-                     <ChevronLeft size={24} className="text-gray-700 cursor-pointer" />
+        <div className="bg-white p-4 lg:p-8 min-h-screen">
+          {latestOrder ? (
+            <div className="max-w-xl mx-auto border border-gray-200 p-6 shadow-sm">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-black tracking-widest uppercase mb-2">SHEIN</h2>
+                <div className="text-xs text-gray-500 uppercase tracking-widest">Order Confirmation</div>
+              </div>
+              
+              <div className="mb-8">
+                <h3 className="text-xl font-bold mb-4">Dear {latestOrder.users?.first_name || 'Customer'},</h3>
+                <p className="text-gray-600 text-sm">Thank you for your order! Your tracking number is <span className="font-bold">GS{latestOrder.order_number}</span>.</p>
+              </div>
+
+              <div className="space-y-4 border-t border-gray-100 pt-4 mb-8">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Order Number:</span>
+                  <span className="font-bold">{latestOrder.order_number}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Total Amount:</span>
+                  <span className="font-bold">£{latestOrder.total_amount}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Date:</span>
+                  <span className="font-bold">{new Date(latestOrder.created_at).toLocaleDateString()}</span>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="font-bold text-xs uppercase tracking-wider text-gray-400 border-b pb-2">Items</div>
+                {latestOrder.order_items?.map((item: any) => (
+                  <div key={item.id} className="flex gap-4 items-start">
+                    <img src={item.products?.main_image} className="w-16 h-20 object-cover rounded-sm" />
+                    <div className="flex-1">
+                      <div className="text-xs font-bold text-gray-800 line-clamp-1">{item.products?.title}</div>
+                      <div className="text-xs text-gray-500 mt-1">Qty: {item.quantity}</div>
+                      <div className="text-xs font-bold mt-1">£{item.unit_price}</div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-5 text-gray-700">
-                     <Archive size={20} className="cursor-pointer font-light" strokeWidth={1.5} />
-                     <Trash2 size={20} className="cursor-pointer" strokeWidth={1.5} />
-                     <Mail size={20} className="cursor-pointer" strokeWidth={1.5} />
-                     <MoreHorizontal size={20} className="cursor-pointer" strokeWidth={1.5} />
-                  </div>
-               </div>
+                ))}
+              </div>
 
-               <div className="flex items-center justify-between pl-4 pr-3 py-3">
-                  <div className="flex items-center gap-2">
-                     <h1 className="text-[22px] text-black">Order Confirmation</h1>
-                     <span className="bg-[#f0f2f5] text-gray-700 text-[11px] px-1.5 py-0.5 rounded-[4px] font-medium tracking-tight">Inbox</span>
-                  </div>
-                  <Star size={22} className="text-gray-400" strokeWidth={1.5} />
-               </div>
-
-               {/* Gmail Native Smart Summary Card block */}
-               <div className="mx-4 mb-4 bg-[#f4f7fc] rounded-[24px] p-5 flex flex-col relative">
-                  <div className="flex justify-between items-start mb-6">
-                      <div className="flex-1 pr-4">
-                          <h2 className="text-[14px] font-bold text-black leading-snug line-clamp-2">
-                              {products[0]?.title || '1pc Mini Portable Heat Sealer Machine, 2x AA Battery Powered Plastic Bag Se...'}
-                          </h2>
-                          <div className="text-[13px] text-gray-600 mt-1">{cart?.length || 4} items from SHEIN</div>
-                      </div>
-                      <div className="w-[52px] h-[52px] rounded-[10px] overflow-hidden flex-shrink-0 bg-white">
-                          <img src={products[0]?.img || "https://images.unsplash.com/photo-1518640467707-6811f4a6ab73"} className="w-full h-full object-cover" />
-                      </div>
-                  </div>
-
-                  <div className="mb-6">
-                      <div className="text-[34px] font-normal leading-[1.1] text-[#1f1f1f] tracking-tight">Expected by<br/>Tue 21 Jan</div>
-                  </div>
-
-                  <div className="flex items-center gap-2.5 text-[14px] text-black mb-6">
-                      <Truck size={20} className="text-gray-600" strokeWidth={1.5} />
-                      <span>Dispatched · Estimate from SHEIN</span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                      <div className="flex gap-2.5 relative">
-                          <Hash size={20} className="text-gray-800 absolute top-0 -left-1 opacity-80" strokeWidth={1.5} />
-                          <div className="pl-6">
-                              <div className="text-[13px] font-bold text-black">Order number</div>
-                              <div className="text-[13px] text-gray-600">GSO10K49500151G</div>
-                          </div>
-                      </div>
-                      <div className="flex gap-2">
-                          <div>
-                              <div className="text-[13px] font-bold text-black">Tracking number</div>
-                              <div className="text-[13px] text-gray-600">OJ534343034GB</div>
-                          </div>
-                      </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                      <button className="bg-[#0b57d0] text-white px-5 py-2.5 rounded-full text-[14px] font-medium">Track parcel</button>
-                      <button className="bg-[#c2e7ff] text-[#001d35] px-5 py-2.5 rounded-full text-[14px] font-medium">View order</button>
-                  </div>
-               </div>
-
-               {/* Was this correct pill + sender section */}
-               <div className="px-4 flex items-center justify-between mt-1 mb-5">
-                   <div className="text-[12px] text-gray-500 flex items-center gap-1 cursor-pointer">Based on 2 emails <ChevronDown size={14}/></div>
-                   <div className="flex items-center gap-1 text-[12px] text-gray-500">
-                       Correct? 
-                       <ThumbsUp size={16} className="ml-2 cursor-pointer" strokeWidth={1.5} />
-                       <ThumbsDown size={16} className="ml-2 cursor-pointer" strokeWidth={1.5} />
-                   </div>
-               </div>
-
-               {/* Email Sender Header */}
-               <div className="px-4 flex items-start gap-3 mb-6 w-full">
-                   <div className="w-[42px] h-[42px] rounded-full bg-black text-white flex items-center justify-center font-bold text-[11px] tracking-widest flex-shrink-0">
-                       SHEIN
-                   </div>
-                   <div className="flex flex-col flex-1 mt-0.5">
-                       <div className="flex items-center mb-0.5">
-                           <span className="text-[15px] text-black">SHEIN</span>
-                           <div className="w-3.5 h-3.5 bg-[#1b6df9] rounded-full flex items-center justify-center relative flex-shrink-0 ml-1.5"><Check size={8} className="text-white" strokeWidth={4} /></div>
-                           <span className="text-[12px] text-gray-500 ml-2 mt-0.5">7 Jan 2025</span>
-                       </div>
-                       <div className="text-[12px] text-gray-500 flex items-center gap-1">to me <ChevronDown size={12} className="mt-0.5 relative top-[-1px]" /></div>
-                   </div>
-                   <div className="flex items-center gap-4 text-gray-500 mt-1 border border-transparent">
-                       <Smile size={20} className="cursor-pointer" strokeWidth={1.5} />
-                       <Reply size={20} className="scale-x-[-1] cursor-pointer" strokeWidth={1.5} />
-                       <MoreHorizontal size={20} className="cursor-pointer" strokeWidth={1.5} />
-                   </div>
-               </div>
-
-               {/* Actual Email Content matching SHEIN mail design */}
-               <div className="px-5 w-full">
-                   <div className="flex justify-center mb-6 pt-4">
-                       <h2 className="text-[34px] font-black tracking-[0.1em] uppercase text-black">SHEIN</h2>
-                   </div>
-
-                   <div className="text-center mb-6 text-black text-[12px] font-light">-</div>
-
-                   <h3 className="text-[34px] font-bold text-black mb-6 mt-4 leading-tight tracking-tight">Dear {latestOrder?.users?.name || 'Customer'},</h3>
-
-                   <p className="text-[17px] text-black leading-relaxed mb-6 font-normal">
-                      Thank you for your order! We hope you enjoyed shopping with us.
-                   </p>
-
-                   <div className="flex justify-start mb-14 mt-10">
-                       <button className="bg-[#f09581] text-white text-[22px] font-bold px-8 py-3.5 w-full max-w-[300px]">
-                          Order information
-                       </button>
-                   </div>
-
-                   <div className="flex flex-col gap-10 mb-12">
-                       <div>
-                           <div className="text-[19px] font-bold text-black mb-3">Order number:</div>
-                           <div className="text-[17px] font-normal text-black">{latestOrder?.order_number || 'GSO10K49500151G'}</div>
-                       </div>
-                       
-                       <div>
-                           <div className="text-[19px] font-bold text-black mb-3">Total Amount:</div>
-                           <div className="text-[17px] font-normal text-black">£{latestOrder?.total_amount || '0.00'}</div>
-                       </div>
-
-                       <div>
-                           <div className="text-[19px] font-bold text-black mb-3">Payment Date:</div>
-                           <div className="text-[17px] font-normal text-black">{latestOrder?.created_at ? new Date(latestOrder.created_at).toLocaleDateString() : '-'}</div>
-                       </div>
-                   </div>
-
-                   <p className="text-[16px] font-normal leading-relaxed text-black mb-10 pt-2">
-                      Logistics tracking will be available on<br/>"TRACK-My orders" in <span className="bg-[#fcf1a1] px-1 font-bold">SHEIN</span> App.<br/>
-                      Thank you for your understanding.
-                   </p>
-
-                   <div className="relative mt-12 w-full">
-                       <div className="bg-black text-white px-3 py-2 w-fit absolute -top-5 left-0 z-10 border-[1px] border-black">
-                           <span className="font-bold text-[19px]">Order Summary:</span>
-                       </div>
-                       
-                       {/* Table borders for summary */}
-                       <div className="border border-gray-200 border-b-0 pt-12 px-5 pb-8">
-                           {latestOrder?.order_items?.map((item: any) => (
-                             <div key={item.id} className="mb-8 last:mb-0">
-                                <div className="w-[120px] h-[120px] mb-5">
-                                    <img src={item.products?.main_image} className="w-full h-full object-cover" />
-                                </div>
-                                
-                                <div className="text-[#a1a1aa] text-[15px] leading-relaxed mb-6 font-normal">
-                                    {item.products?.title}
-                                </div>
-                                
-                                <div className="flex flex-col gap-3 font-bold text-[15px] text-black tracking-tight">
-                                    <div>QTY: {item.quantity}</div>
-                                    <div>PRICE: £{item.unit_price}</div>
-                                </div>
-                             </div>
-                           ))}
-                       </div>
-                       <div className="border-t border-gray-200"></div>
-                   </div>
-               </div>
-
-               {/* Bottom Gmail action buttons */}
-               <div className="absolute bottom-0 w-full bg-white border-t border-gray-200 flex gap-2 p-3 justify-center items-center pb-5 pt-3 mx-auto left-0 right-0 z-50">
-                    <button className="flex-1 flex items-center justify-center gap-2 border border-gray-300 rounded-full h-[42px] text-[15px] font-medium text-gray-700 ml-2 cursor-pointer">
-                        <Reply size={20} className="scale-x-[-1] text-gray-700" strokeWidth={1.5} /> <span className="mt-[1px]">Reply</span>
-                    </button>
-                    <button className="flex-1 flex items-center justify-center gap-2 border border-gray-300 rounded-full h-[42px] text-[15px] font-medium text-gray-700 cursor-pointer">
-                        <Forward size={20} className="scale-x-[-1] text-gray-700" strokeWidth={1.5} /> <span className="mt-[1px]">Forward</span>
-                    </button>
-                    <button className="w-[42px] h-[42px] rounded-full border border-gray-300 flex items-center justify-center text-gray-600 mr-2 flex-shrink-0 cursor-pointer">
-                        <Smile size={20} strokeWidth={1.5} />
-                    </button>
-               </div>
+              <div className="mt-12 pt-6 border-t border-gray-200 text-center">
+                <button onClick={() => window.print()} className="bg-black text-white px-8 py-3 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-gray-800">Print Invoice</button>
+              </div>
             </div>
+          ) : (
+            <div className="text-center py-20 text-gray-500 italic">No orders found yet.</div>
+          )}
         </div>
       )}
 
@@ -527,20 +443,101 @@ export const AdminScreen = ({ setScreen }: { setScreen: (s: string) => void }) =
             </div>
          </div>
       )}
+
+      {/* Category Edit Modal */}
+      {editingCategory && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-70 p-4">
+          <div className="bg-white w-full max-w-sm rounded-sm shadow-xl overflow-hidden flex flex-col">
+             <div className="px-4 py-3 border-b flex justify-between items-center bg-gray-50">
+                <h3 className="font-bold text-gray-900 text-sm">Edit Category Image</h3>
+                <button onClick={() => setEditingCategory(null)} className="text-gray-500 hover:text-black">
+                   <X size={20} />
+                </button>
+             </div>
+             <div className="p-4">
+                <div className="mb-4">
+                   <label className="block text-xs font-bold text-gray-700 mb-1">Category Name</label>
+                   <input type="text" value={editingCategory.name} disabled className="w-full p-2 bg-gray-50 border border-gray-200 rounded-sm text-sm text-gray-500" />
+                </div>
+                <div className="mb-4">
+                   <label className="block text-xs font-bold text-gray-700 mb-1">Image URL</label>
+                   <textarea 
+                      value={catImg}
+                      onChange={(e) => setCatImg(e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded-sm text-sm focus:ring-black focus:border-black h-24 resize-none"
+                   />
+                </div>
+                <div className="flex gap-4">
+                   <div className="w-[100px] h-[100px] bg-gray-100 border border-gray-200 rounded-sm overflow-hidden flex-shrink-0">
+                      <img src={catImg} alt="Preview" className="w-full h-full object-cover" />
+                   </div>
+                   <div className="flex flex-col justify-end flex-grow">
+                      <button onClick={saveCategoryEdit} className="w-full py-2.5 bg-black text-white text-xs font-bold rounded-sm hover:bg-gray-800 transition-colors">
+                         Update Category
+                      </button>
+                   </div>
+                </div>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Homepage Section Modal */}
+      {editingSection && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black bg-opacity-70 p-4">
+          <div className="bg-white w-full max-w-xl rounded-sm shadow-xl flex flex-col">
+            <div className="px-4 py-3 border-b flex justify-between items-center bg-gray-50">
+               <h3 className="font-bold text-gray-900 text-sm">Edit {editingSection.title}</h3>
+               <button onClick={() => setEditingSection(null)}><X size={20} /></button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[80vh] space-y-6">
+               {sectionItems?.map((item, idx) => (
+                 <div key={idx} className="border-b border-gray-100 pb-4 last:border-0">
+                    <h4 className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wider">Item {idx + 1}</h4>
+                    <div className="flex gap-4">
+                       <div className="w-[100px] h-[133px] bg-gray-100 border rounded-sm overflow-hidden flex-shrink-0">
+                          <img src={item.img} className="w-full h-full object-cover" />
+                       </div>
+                       <div className="flex-1 space-y-3">
+                          <div>
+                            <label className="block text-[10px] font-bold text-gray-400 mb-1">IMAGE URL</label>
+                            <textarea value={item.img} onChange={(e) => updateItemField(idx, 'img', e.target.value)} className="w-full p-2 border rounded-sm text-xs h-16 resize-none" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-gray-400 mb-1">PRICE (£)</label>
+                            <input type="text" value={item.price} onChange={(e) => updateItemField(idx, 'price', e.target.value)} className="w-full p-2 border rounded-sm text-xs" />
+                          </div>
+                          {item.sub !== undefined && (
+                            <div>
+                               <label className="block text-[10px] font-bold text-gray-400 mb-1">BRAND/SUBTITLE</label>
+                               <input type="text" value={item.sub} onChange={(e) => updateItemField(idx, 'sub', e.target.value)} className="w-full p-2 border rounded-sm text-xs" />
+                            </div>
+                          )}
+                       </div>
+                    </div>
+                 </div>
+               ))}
+            </div>
+            <div className="p-4 border-t bg-gray-50 flex justify-end">
+               <button onClick={saveSection} className="bg-black text-white px-8 py-2.5 rounded-sm font-bold text-sm">Save Section Content</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
   return (
     <>
       <div className="block lg:hidden">
-        <MobileLayout setScreen={setScreen} hideNav>
-           <AdminContent />
+        <MobileLayout setScreen={setScreen}>
+           {adminContent}
         </MobileLayout>
       </div>
 
       <div className="hidden lg:block">
-        <DesktopLayout setScreen={setScreen}>
-           <AdminContent />
+        <DesktopLayout>
+           {adminContent}
         </DesktopLayout>
       </div>
     </>

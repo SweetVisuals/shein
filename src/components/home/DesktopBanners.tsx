@@ -8,19 +8,55 @@ export const DesktopBanners = () => {
       <div className="w-[300px] flex flex-col gap-4">
         <div className="relative h-[110px] bg-gradient-to-r from-stone-400 to-stone-200 overflow-hidden cursor-pointer">
           <div className="absolute inset-0 bg-black/20 mix-blend-multiply"></div>
-          <img src="https://images.unsplash.com/photo-1515347619362-e64e9eee8821?q=80&w=400&auto=format&fit=crop" className="absolute right-0 top-0 h-full object-cover w-1/2 mix-blend-luminosity opacity-80" alt="" />
+          <img 
+            src="https://images.unsplash.com/photo-1515347619362-e64e9eee8821?q=80&w=400&auto=format&fit=crop" 
+            className="absolute right-0 top-0 h-full object-cover w-1/2 mix-blend-luminosity opacity-80" 
+            alt="" 
+            referrerPolicy="no-referrer" 
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              if (!target.getAttribute('data-tried-fallback')) {
+                target.setAttribute('data-tried-fallback', 'true');
+                target.src = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=300&auto=format&fit=crop';
+              }
+            }}
+          />
           <div className="absolute inset-y-0 left-0 flex items-center px-6 text-white font-bold text-lg z-10 shadow-sm drop-shadow-md">
             3-Day Delivery
           </div>
         </div>
         <div className="relative h-[110px] bg-gradient-to-r from-stone-400 to-stone-200 overflow-hidden cursor-pointer">
-          <img src="https://images.unsplash.com/photo-1496747611176-843222e1e57c?q=80&w=400&auto=format&fit=crop" className="absolute right-0 top-0 h-full object-cover w-1/2 mix-blend-luminosity opacity-80" alt="" />
+          <img 
+            src="https://images.unsplash.com/photo-1496747611176-843222e1e57c?q=80&w=400&auto=format&fit=crop" 
+            className="absolute right-0 top-0 h-full object-cover w-1/2 mix-blend-luminosity opacity-80" 
+            alt="" 
+            referrerPolicy="no-referrer" 
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              if (!target.getAttribute('data-tried-fallback')) {
+                target.setAttribute('data-tried-fallback', 'true');
+                target.src = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=300&auto=format&fit=crop';
+              }
+            }}
+          />
           <div className="absolute inset-y-0 left-0 flex items-center px-6 text-white font-bold text-lg z-10 drop-shadow-md">
             Bank Holiday Sale
           </div>
         </div>
         <div className="relative h-[110px] bg-gradient-to-r from-blue-300 to-stone-200 overflow-hidden cursor-pointer">
-          <img src="https://images.unsplash.com/photo-1514316454349-750a7fd3da3a?q=80&w=400&auto=format&fit=crop" className="absolute right-0 top-0 h-full object-cover w-1/2 mix-blend-luminosity opacity-80" alt="" />
+          <img 
+            src="https://images.unsplash.com/photo-1514316454349-750a7fd3da3a?q=80&w=400&auto=format&fit=crop" 
+            className="absolute right-0 top-0 h-full object-cover w-1/2 mix-blend-luminosity opacity-80" 
+            alt="" 
+            referrerPolicy="no-referrer" 
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              if (!target.getAttribute('data-tried-fallback')) {
+                target.setAttribute('data-tried-fallback', 'true');
+                target.src = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=300&auto=format&fit=crop';
+              }
+            }}
+          />
           <div className="absolute inset-y-0 left-0 flex items-center px-6 text-white font-bold text-lg z-10 drop-shadow-md uppercase tracking-wider">
             SHEIN CLUB
           </div>
@@ -61,15 +97,51 @@ export const DesktopBanners = () => {
       {/* Right Column */}
       <div className="w-[300px] flex flex-col gap-4">
          <div className="relative h-[110px] bg-[#4a4746] flex items-center justify-center cursor-pointer overflow-hidden">
-            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop" className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-luminosity" alt="" />
+            <img 
+              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop" 
+              className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-luminosity" 
+              alt="" 
+              referrerPolicy="no-referrer" 
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                if (!target.getAttribute('data-tried-fallback')) {
+                  target.setAttribute('data-tried-fallback', 'true');
+                  target.src = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=300&auto=format&fit=crop';
+                }
+              }}
+            />
             <span className="relative z-10 text-white text-4xl font-thin tracking-widest">MUSERA</span>
          </div>
          <div className="relative h-[110px] bg-[#333333] flex items-center justify-center cursor-pointer overflow-hidden">
-            <img src="https://images.unsplash.com/photo-1549439602-43ebca2327af?q=80&w=400&auto=format&fit=crop" className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-luminosity" alt="" />
+            <img 
+              src="https://images.unsplash.com/photo-1549439602-43ebca2327af?q=80&w=400&auto=format&fit=crop" 
+              className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-luminosity" 
+              alt="" 
+              referrerPolicy="no-referrer" 
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                if (!target.getAttribute('data-tried-fallback')) {
+                  target.setAttribute('data-tried-fallback', 'true');
+                  target.src = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=300&auto=format&fit=crop';
+                }
+              }}
+            />
             <span className="relative z-10 text-white text-3xl font-bold tracking-tighter lowercase">missguided</span>
          </div>
          <div className="relative h-[110px] bg-[#423d3a] flex items-center justify-center cursor-pointer overflow-hidden">
-            <img src="https://images.unsplash.com/photo-1434389678232-04ce6ca8bc88?q=80&w=400&auto=format&fit=crop" className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-luminosity" alt="" />
+            <img 
+              src="https://images.unsplash.com/photo-1434389678232-04ce6ca8bc88?q=80&w=400&auto=format&fit=crop" 
+              className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-luminosity" 
+              alt="" 
+              referrerPolicy="no-referrer" 
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                if (!target.getAttribute('data-tried-fallback')) {
+                  target.setAttribute('data-tried-fallback', 'true');
+                  target.src = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=300&auto=format&fit=crop';
+                }
+              }}
+            />
             <span className="relative z-10 text-white text-4xl font-serif tracking-[0.3em]">MOTF</span>
          </div>
       </div>

@@ -5,14 +5,13 @@ import { DesktopLayout } from '../components/layout/DesktopLayout';
 import { useAppContext } from '../context/AppContext';
 
 export const PLPScreen = ({ setScreen }: { setScreen: (s: string) => void }) => {
-  const { products } = useAppContext();
+  const { products, categories } = useAppContext();
 
-  const categories = [
-    { name: 'Women Apparel', img: 'https://images.unsplash.com/photo-1515347619362-e64e9eee8821?q=80&w=100&auto=format&fit=crop' },
-    { name: 'Home & Living', img: 'https://images.unsplash.com/photo-1583847268964-b28ce8f31586?q=80&w=100&auto=format&fit=crop' },
-    { name: 'Kids', img: 'https://images.unsplash.com/photo-1503919545889-aef636e10ad4?q=80&w=100&auto=format&fit=crop' },
-    { name: 'Jewelry & Watches', img: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=100&auto=format&fit=crop' },
-    { name: 'Underwear & Sleepwe...', img: 'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=100&auto=format&fit=crop' },
+  const displayCategories = categories.length > 0 ? categories : [
+    { name: 'Women Apparel', image_url: 'https://images.unsplash.com/photo-1515347619362-e64e9eee8821?q=80&w=100&auto=format&fit=crop' },
+    { name: 'Home & Living', image_url: 'https://images.unsplash.com/photo-1583847268964-b28ce8f31586?q=80&w=100&auto=format&fit=crop' },
+    { name: 'Kids', image_url: 'https://images.unsplash.com/photo-1503919545889-aef636e10ad4?q=80&w=100&auto=format&fit=crop' },
+    { name: 'Jewelry & Watches', image_url: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=100&auto=format&fit=crop' },
   ];
 
   return (
@@ -35,10 +34,21 @@ export const PLPScreen = ({ setScreen }: { setScreen: (s: string) => void }) => 
 
           {/* Categories Story */}
           <div className="bg-white py-3 flex gap-4 overflow-x-auto no-scrollbar px-4 border-b border-gray-100">
-             {categories.map((c, i) => (
-                <div key={i} className="flex flex-col items-center flex-shrink-0 w-16">
+             {displayCategories.map((c, i) => (
+                <div key={c.id || i} className="flex flex-col items-center flex-shrink-0 w-16">
                    <div className="w-14 h-14 rounded-full overflow-hidden mb-1 border border-gray-200">
-                      <img src={c.img} className="w-full h-full object-cover" />
+                      <img 
+                         src={c.image_url} 
+                         className="w-full h-full object-cover" 
+                         referrerPolicy="no-referrer"
+                         onError={(e) => {
+                           const target = e.target as HTMLImageElement;
+                           if (!target.getAttribute('data-tried-fallback')) {
+                             target.setAttribute('data-tried-fallback', 'true');
+                             target.src = 'https://images.unsplash.com/photo-1515347619362-e64e9eee8821?q=80&w=100&auto=format&fit=crop';
+                           }
+                         }}
+                       />
                    </div>
                    <span className="text-[10px] text-center leading-tight">{c.name}</span>
                 </div>
@@ -66,7 +76,18 @@ export const PLPScreen = ({ setScreen }: { setScreen: (s: string) => void }) => 
              {products.map((p, i) => (
                 <div key={i} className="bg-white rounded-md overflow-hidden cursor-pointer" onClick={() => setScreen('PDP')}>
                    <div className="relative aspect-[3/4]">
-                      <img src={p.img} className="w-full h-full object-cover" />
+                      <img 
+                         src={p.img} 
+                         className="w-full h-full object-cover" 
+                         referrerPolicy="no-referrer"
+                         onError={(e) => {
+                           const target = e.target as HTMLImageElement;
+                           if (!target.getAttribute('data-tried-fallback')) {
+                             target.setAttribute('data-tried-fallback', 'true');
+                             target.src = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=300&auto=format&fit=crop';
+                           }
+                         }}
+                       />
                       {p.isChoice && (
                          <div className="absolute top-0 left-0 bg-white/90 px-2 py-0.5 rounded-br-md flex flex-col items-start">
                             <span className="text-[#cba886] font-bold text-[10px] italic leading-tight">*choices*</span>

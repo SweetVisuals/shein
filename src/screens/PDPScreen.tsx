@@ -52,7 +52,18 @@ export const PDPScreen = ({ setScreen }: { setScreen: (s: string) => void }) => 
 
           {/* Image */}
           <div className="relative aspect-[4/5] bg-gray-100">
-             <img src="https://images.unsplash.com/photo-1618423851509-24754a6138d4?q=80&w=600&auto=format&fit=crop" className="w-full h-full object-cover" />
+             <img 
+               src="https://images.unsplash.com/photo-1618423851509-24754a6138d4?q=80&w=600&auto=format&fit=crop" 
+               className="w-full h-full object-cover" 
+               referrerPolicy="no-referrer"
+               onError={(e) => {
+                 const target = e.target as HTMLImageElement;
+                 if (!target.getAttribute('data-tried-fallback')) {
+                   target.setAttribute('data-tried-fallback', 'true');
+                   target.src = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=300&auto=format&fit=crop';
+                 }
+               }}
+             />
              <div className="absolute top-2 left-2 bg-white/90 px-2 py-1 rounded-sm flex flex-col items-start shadow-sm">
                 <span className="text-[#cba886] font-bold text-[10px] italic leading-tight">*choices*</span>
                 <span className="text-xs font-bold leading-tight">OBOVAY</span>
@@ -111,8 +122,30 @@ export const PDPScreen = ({ setScreen }: { setScreen: (s: string) => void }) => 
                 </div>
                 <div className="flex items-center">
                    <div className="flex -space-x-2">
-                      <img src="https://images.unsplash.com/photo-1544816155-12df9643f363?w=20&h=20&fit=crop" className="w-5 h-5 rounded-full border border-white" />
-                      <img src="https://images.unsplash.com/photo-1516257984-b1b4d707412e?w=20&h=20&fit=crop" className="w-5 h-5 rounded-full border border-white" />
+                      <img 
+                        src="https://images.unsplash.com/photo-1544816155-12df9643f363?w=20&h=20&fit=crop" 
+                        className="w-5 h-5 rounded-full border border-white" 
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          if (!target.getAttribute('data-tried-fallback')) {
+                            target.setAttribute('data-tried-fallback', 'true');
+                            target.src = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=20&h=20&fit=crop';
+                          }
+                        }}
+                      />
+                      <img 
+                        src="https://images.unsplash.com/photo-1516257984-b1b4d707412e?w=20&h=20&fit=crop" 
+                        className="w-5 h-5 rounded-full border border-white" 
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          if (!target.getAttribute('data-tried-fallback')) {
+                            target.setAttribute('data-tried-fallback', 'true');
+                            target.src = 'https://images.unsplash.com/photo-1516257984-b1b4d707412e?q=80&w=20&h=20&fit=crop';
+                          }
+                        }}
+                      />
                    </div>
                    <ChevronRight size={14} className="text-[#cba886] ml-1" />
                 </div>

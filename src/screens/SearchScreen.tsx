@@ -59,7 +59,18 @@ export const SearchScreen = ({ setScreen }: { setScreen: (s: string) => void }) 
                       {trendingSearches.map((item, i) => (
                          <div key={i} className="flex flex-row items-center gap-3">
                             <span className={`w-4 h-5 flex items-center justify-center text-[10px] text-white font-bold ${i < 3 ? 'bg-[#cba886] rounded-t-sm' : 'bg-gray-300 rounded-t-sm'}`}>{item.rank}</span>
-                            {item.img && <img src={item.img} className="w-10 h-10 object-cover rounded-sm" />}
+                            {item.img && <img 
+                              src={item.img} 
+                              className="w-10 h-10 object-cover rounded-sm" 
+                              referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                if (!target.getAttribute('data-tried-fallback')) {
+                                  target.setAttribute('data-tried-fallback', 'true');
+                                  target.src = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=300&auto=format&fit=crop';
+                                }
+                              }}
+                            />}
                             <span className="flex-1 font-bold text-sm text-gray-800">{item.name}</span>
                             <ArrowUp size={16} className="text-red-500" />
                          </div>
@@ -76,7 +87,18 @@ export const SearchScreen = ({ setScreen }: { setScreen: (s: string) => void }) 
                       {womenCoords.map((item, i) => (
                          <div key={i} className="flex flex-row items-center gap-3">
                             <span className={`w-4 h-5 flex items-center justify-center text-[10px] text-white font-bold ${i < 3 ? 'bg-[#cba886] rounded-t-sm' : 'bg-gray-300 rounded-t-sm'}`}>{item.rank}</span>
-                            {item.img && <img src={item.img} className="w-10 h-10 object-cover rounded-sm" />}
+                            {item.img && <img 
+                              src={item.img} 
+                              className="w-10 h-10 object-cover rounded-sm" 
+                              referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                if (!target.getAttribute('data-tried-fallback')) {
+                                  target.setAttribute('data-tried-fallback', 'true');
+                                  target.src = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=300&auto=format&fit=crop';
+                                }
+                              }}
+                            />}
                             <span className="flex-1 font-bold text-sm text-gray-800">{item.name}</span>
                          </div>
                       ))}

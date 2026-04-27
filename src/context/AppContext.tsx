@@ -29,6 +29,7 @@ export interface User {
   lastName?: string;
   loyaltyPoints?: number;
   walletBalance?: number;
+  cartDisplayDiscount?: string;
 }
 
 interface AppContextType {
@@ -42,10 +43,15 @@ interface AppContextType {
   clearCart: () => void;
   products: Product[];
   isLoading: boolean;
-  addProduct: (product: Product) => void;
+  addProduct: (product: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
   updateProduct: (id: string, updates: Partial<Product>) => void;
+  categories: any[];
+  updateCategory: (id: string, updates: any) => Promise<void>;
   fetchOrders: () => Promise<any[]>;
+  homepageSections: any[];
+  updateHomepageSection: (id: string, updates: any) => Promise<void>;
+  updateUser: (id: string, updates: any) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -498,11 +504,15 @@ const INITIAL_PRODUCTS: Product[] = [
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [homepageSections, setHomepageSections] = useState<any[]>([]);
 
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
+    fetchHomepageSections();
     checkUser();
   }, []);
 
@@ -606,32 +616,76 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const checkUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      const { data: profile } = await supabase
-        .from('users')
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
         .select('*')
-        .eq('id', session.user.id)
-        .single();
+        .order('name');
+      
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+    }
+  };
 
-      if (profile) {
-        setUser({
-          id: profile.id,
-          email: profile.email,
-          name: profile.first_name ? `${profile.first_name} ${profile.last_name || ''}`.trim() : profile.email.split('@')[0],
-          firstName: profile.first_name,
-          lastName: profile.last_name,
-          loyaltyPoints: profile.loyalty_points,
-          walletBalance: profile.wallet_balance
-        });
-      } else {
-        setUser({
-          id: session.user.id,
-          email: session.user.email || '',
-          name: session.user.email?.split('@')[0]
-        });
+  const updateCategory = async (id: string, updates: any) => {
+    try {
+      const { error } = await supabase
+        .from('categories')
+        .update(updates)
+        .eq('id', id);
+      
+      if (error) throw error;
+      fetchCategories();
+    } catch (err) {
+      console.error('Error updating category:', err);
+    }
+  };
+
+  const checkUser = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      let userId = session?.user?.id;
+      
+      // If no session, find the first user in the table (since it's a single-user setup)
+      if (!userId) {
+        const { data: firstUser } = await supabase
+          .from('users')
+          .select('id')
+          .limit(1)
+          .maybeSingle();
+        
+        if (firstUser) {
+          userId = firstUser.id;
+        }
       }
+
+      if (userId) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', userId)
+          .single();
+
+        if (profile) {
+          setUser({
+            id: profile.id,
+            email: profile.email,
+            name: profile.first_name ? `${profile.first_name} ${profile.last_name || ''}`.trim() : profile.email.split('@')[0],
+            firstName: profile.first_name,
+            lastName: profile.last_name,
+            loyaltyPoints: profile.loyalty_points,
+            walletBalance: profile.wallet_balance,
+            cartDisplayDiscount: profile.cart_display_discount || '-£43.04'
+          });
+          fetchCart(profile.id);
+        }
+      }
+    } catch (err) {
+      console.error('Error checking user:', err);
     }
   };
 
@@ -653,7 +707,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         firstName: existingUser.first_name,
         lastName: existingUser.last_name,
         loyaltyPoints: existingUser.loyalty_points,
-        walletBalance: existingUser.wallet_balance
+        walletBalance: existingUser.wallet_balance,
+        cartDisplayDiscount: existingUser.cart_display_discount || '-£43.04'
       });
     } else {
       const { data: newUser, error: createError } = await supabase
@@ -805,22 +860,75 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   const clearCart = async () => {
     if (user) {
-      const { data: cartData } = await supabase
-        .from('shopping_carts')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-      if (cartData) {
-        await supabase.from('cart_items').delete().eq('cart_id', cartData.id);
-        fetchCart(user.id);
+      try {
+        const { data: cartData } = await supabase
+          .from('shopping_carts')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (cartData) {
+          await supabase.from('cart_items').delete().eq('cart_id', cartData.id);
+          fetchCart(user.id);
+        }
+      } catch (err) {
+        console.error('Error clearing cart:', err);
       }
     } else {
       setCart([]);
     }
   };
 
+  const fetchHomepageSections = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('homepage_sections')
+        .select('*')
+        .order('section_key');
+      
+      if (error) throw error;
+      setHomepageSections(data || []);
+    } catch (err) {
+      console.error('Error fetching homepage sections:', err);
+    }
+  };
+
+  const updateHomepageSection = async (id: string, updates: any) => {
+    try {
+      const { error } = await supabase
+        .from('homepage_sections')
+        .update(updates)
+        .eq('id', id);
+      
+      if (error) throw error;
+      fetchHomepageSections();
+    } catch (err) {
+      console.error('Error updating homepage section:', err);
+    }
+  };
+
+  const updateUser = async (id: string, updates: any) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update(updates)
+        .eq('id', id);
+      
+      if (error) throw error;
+      checkUser(); // Refresh local state
+    } catch (err) {
+      console.error('Error updating user:', err);
+    }
+  };
+
   return (
-    <AppContext.Provider value={{ user, login, logout, cart, addToCart, removeFromCart, updateQuantity, clearCart, products, isLoading, addProduct, deleteProduct, updateProduct, fetchOrders }}>
+    <AppContext.Provider value={{ 
+      user, login, logout, cart, addToCart, removeFromCart, updateQuantity, clearCart, 
+      products, isLoading, addProduct, deleteProduct, updateProduct, 
+      categories, updateCategory, fetchOrders,
+      homepageSections, updateHomepageSection,
+      updateUser
+    }}>
       {children}
     </AppContext.Provider>
   );

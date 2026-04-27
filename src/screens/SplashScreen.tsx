@@ -10,7 +10,12 @@ export const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
 
   return (
     <div className="fixed inset-0 bg-white flex flex-col items-center justify-center z-[100]">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/2/25/Shein-logo.png" alt="SHEIN" className="h-[40px] md:h-[60px] object-contain" />
+       <svg 
+        viewBox="0 0 100 20" 
+        className="h-10 md:h-16 object-contain fill-black" 
+       >
+         <text x="50%" y="15" textAnchor="middle" fontWeight="900" fontSize="16" letterSpacing="2">SHEIN</text>
+       </svg>
     </div>
   );
 };

@@ -9,8 +9,13 @@ export const DesktopHeader = () => {
       {/* Top Bar */}
       <div className="max-w-[1200px] mx-auto px-4 h-[70px] flex items-center justify-between">
         {/* Logo */}
-        <div className="flex-shrink-0 mr-8 cursor-pointer h-10 w-28 overflow-hidden">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/2/25/Shein-logo.png" alt="SHEIN" className="h-full w-full object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
+        <div className="flex-shrink-0 mr-8 cursor-pointer h-8 overflow-hidden">
+           <svg 
+            viewBox="0 0 100 20" 
+            className="h-full object-contain fill-white" 
+           >
+             <text x="50%" y="15" textAnchor="middle" fontWeight="900" fontSize="16" letterSpacing="2">SHEIN</text>
+           </svg>
         </div>
 
         {/* Search */}
