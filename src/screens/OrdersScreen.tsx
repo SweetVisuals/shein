@@ -1,13 +1,36 @@
-import React from 'react';
-import { ChevronLeft, ChevronRight, Package, ArrowRight, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronLeft, Package } from 'lucide-react';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { useAppContext } from '../context/AppContext';
+import { supabase } from '../supabase';
 
 export const OrdersScreen = ({ setScreen }: { setScreen: (s: string) => void }) => {
-  const { cart } = useAppContext();
-  
-  const totalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2);
-  const itemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const { user } = useAppContext();
+  const [orders, setOrders] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      fetchOrders();
+    }
+  }, [user]);
+
+  const fetchOrders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, order_items(*, products(*)), shipments(*)')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setOrders(data || []);
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="block lg:hidden">
@@ -29,41 +52,53 @@ export const OrdersScreen = ({ setScreen }: { setScreen: (s: string) => void }) 
           </div>
 
           <div className="p-3">
-             {/* Order Card */}
-             <div className="bg-white rounded-md p-3 mb-3">
-                <div className="flex justify-between items-center mb-3 text-sm pb-3 border-b border-gray-100">
-                   <div className="text-gray-500 font-bold">Order NO. GSHM8C008453</div>
-                   <div className="text-red-500 font-bold uppercase text-[12px] bg-red-50 px-2 py-0.5 rounded-sm">Shipped</div>
-                </div>
-
-                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-                   {cart.slice(0, 4).map((item, index) => (
-                     <div key={item.cartItemId} className="flex-shrink-0 w-[72px] h-[96px] bg-gray-100 rounded-sm overflow-hidden relative">
-                        <img src={item.img} className="w-full h-full object-cover" />
-                        {index === 3 && cart.length > 4 && (
-                           <div className="absolute inset-0 bg-white/70 flex items-center justify-center font-bold text-gray-800 text-sm backdrop-blur-[1px]">
-                              +{cart.length - 3}
-                           </div>
-                        )}
-                     </div>
-                   ))}
-                   {cart.length === 0 && (
-                      <div className="text-gray-500 text-sm py-8 text-center w-full">No items in this order.</div>
-                   )}
-                </div>
-
-                <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
-                   <div className="text-gray-800 text-sm">
-                      Total: <span className="font-bold">£{totalPrice}</span> ({itemsCount} items)
+             {orders.length > 0 ? orders.map((order) => (
+                <div key={order.id} className="bg-white rounded-md p-3 mb-3 shadow-sm border-none">
+                   <div className="flex justify-between items-center mb-3 text-sm pb-3 border-b border-gray-50">
+                      <div className="text-gray-500 font-bold">Order NO. {order.order_number}</div>
+                      <div className="text-red-500 font-bold uppercase text-[12px] bg-red-50 px-2 py-0.5 rounded-sm">{order.status}</div>
                    </div>
-                   <div className="flex gap-2">
-                      <button onClick={() => setScreen('TRACKING')} className="border border-gray-300 rounded-full px-4 py-1.5 text-xs font-bold text-gray-700">Track</button>
-                      <button className="border border-black bg-black rounded-full px-4 py-1.5 text-xs font-bold text-white shadow-sm">Confirm Delivery</button>
+
+                   <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                      {order.order_items.map((item: any) => (
+                        <div key={item.id} className="flex-shrink-0 w-[72px] h-[96px] bg-gray-50 rounded-sm overflow-hidden relative">
+                           <img src={item.products?.main_image} className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                   </div>
+
+                   <div className="bg-[#fcfcfc] p-3 mt-3 rounded-sm border border-gray-50">
+                      <div className="text-[11px] text-gray-400 uppercase font-bold mb-2">Recipient Details</div>
+                      <div className="text-[13px] font-bold text-gray-800">{order.shipping_address_json?.full_name}</div>
+                      <div className="text-[12px] text-gray-500 leading-snug">
+                         {order.shipping_address_json?.address}<br/>
+                         {order.shipping_address_json?.postal_code}
+                      </div>
+                   </div>
+
+                   <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-50">
+                      <div className="text-gray-800 text-sm">
+                         Total: <span className="font-bold">£{order.total_amount}</span> ({order.order_items.length} items)
+                      </div>
+                      <div className="flex gap-2">
+                         <button 
+                           onClick={() => setScreen('TRACKING')} 
+                           className="border border-gray-200 rounded-full px-4 py-1.5 text-xs font-bold text-gray-700"
+                         >
+                           Track
+                         </button>
+                         <button className="border border-black bg-black rounded-full px-4 py-1.5 text-xs font-bold text-white shadow-sm">Confirm</button>
+                      </div>
                    </div>
                 </div>
-             </div>
+             )) : (
+               <div className="text-center py-20">
+                 <Package size={48} className="mx-auto text-gray-200 mb-4" />
+                 <p className="text-gray-400 text-sm">No orders found</p>
+               </div>
+             )}
 
-             <div className="text-center text-gray-400 text-xs mt-6 pb-6 before:content-[''] before:block before:w-12 before:border-t before:border-gray-300 before:mx-auto before:mb-2 after:content-[''] after:block after:w-12 after:border-t after:border-gray-300 after:mx-auto after:mt-2">No more orders</div>
+             <div className="text-center text-gray-400 text-xs mt-6 pb-6">No more orders</div>
           </div>
         </div>
       </MobileLayout>

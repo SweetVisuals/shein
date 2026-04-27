@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../supabase';
 
 export interface Product {
   id: string;
@@ -21,23 +22,30 @@ export interface CartItem extends Product {
 }
 
 export interface User {
+  id: string;
   email: string;
   name?: string;
+  firstName?: string;
+  lastName?: string;
+  loyaltyPoints?: number;
+  walletBalance?: number;
 }
 
 interface AppContextType {
   user: User | null;
-  login: (email: string) => void;
-  logout: () => void;
+  login: (email: string) => Promise<void>;
+  logout: () => Promise<void>;
   cart: CartItem[];
   addToCart: (product: Product, quantity?: number) => void;
   removeFromCart: (cartItemId: string) => void;
   updateQuantity: (cartItemId: string, quantity: number) => void;
   clearCart: () => void;
   products: Product[];
+  isLoading: boolean;
   addProduct: (product: Product) => void;
   deleteProduct: (id: string) => void;
   updateProduct: (id: string, updates: Partial<Product>) => void;
+  fetchOrders: () => Promise<any[]>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -489,60 +497,293 @@ const INITIAL_PRODUCTS: Product[] = [
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
-  const [cart, setCart] = useState<CartItem[]>(
-    INITIAL_PRODUCTS.map((p) => ({
-       ...p,
-       cartItemId: Math.random().toString(36).substr(2, 9),
-       quantity: 1, // Let's just default to 1
-       selected: true
-    }))
-  );
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [cart, setCart] = useState<CartItem[]>([]);
 
-  const login = (email: string) => setUser({ email, name: email.split('@')[0] });
-  const logout = () => setUser(null);
+  useEffect(() => {
+    fetchProducts();
+    checkUser();
+  }, []);
 
-  const addProduct = (product: Product) => {
+  useEffect(() => {
+    if (user) {
+      fetchCart(user.id);
+    } else {
+      setCart([]);
+    }
+  }, [user]);
+
+  const fetchCart = async (userId: string) => {
+    try {
+      // Get or create cart
+      let { data: cartData, error: cartError } = await supabase
+        .from('shopping_carts')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!cartData) {
+        const { data: newCart, error: createError } = await supabase
+          .from('shopping_carts')
+          .insert([{ user_id: userId }])
+          .select()
+          .single();
+        if (createError) throw createError;
+        cartData = newCart;
+      }
+
+      // Fetch items
+      const { data: items, error: itemsError } = await supabase
+        .from('cart_items')
+        .select('*, products(*)')
+        .eq('cart_id', cartData.id);
+
+      if (itemsError) throw itemsError;
+
+      if (items) {
+        const formatted = items.map(item => ({
+          id: item.product_id,
+          cartItemId: item.id,
+          quantity: item.quantity,
+          title: item.products.title,
+          price: parseFloat(item.products.base_price),
+          img: item.products.main_image,
+          seller: item.products.seller_id // Simplified
+        }));
+        setCart(formatted);
+      }
+    } catch (err) {
+      console.error('Error fetching cart:', err);
+    }
+  };
+
+  const fetchOrders = async () => {
+    if (!user) return [];
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, order_items(*, products(*)), shipments(*)')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+      return [];
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*, sellers(name)');
+      
+      if (error) throw error;
+
+      if (data) {
+        const formatted = data.map(p => ({
+          id: p.id,
+          title: p.title,
+          price: parseFloat(p.base_price),
+          originalPrice: p.original_price ? parseFloat(p.original_price) : undefined,
+          img: p.main_image,
+          sold: `${p.sold_count}+ sold`,
+          discount: p.original_price ? `-${Math.round((1 - p.base_price / p.original_price) * 100)}%` : undefined,
+          seller: p.sellers?.name,
+          tags: p.tags
+        }));
+        setProducts(formatted);
+      }
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      // Fallback to initial products if needed
+      setProducts(INITIAL_PRODUCTS);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const checkUser = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      const { data: profile } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profile) {
+        setUser({
+          id: profile.id,
+          email: profile.email,
+          name: profile.first_name ? `${profile.first_name} ${profile.last_name || ''}`.trim() : profile.email.split('@')[0],
+          firstName: profile.first_name,
+          lastName: profile.last_name,
+          loyaltyPoints: profile.loyalty_points,
+          walletBalance: profile.wallet_balance
+        });
+      } else {
+        setUser({
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.email?.split('@')[0]
+        });
+      }
+    }
+  };
+
+  const login = async (email: string) => {
+    // For demo purposes, we'll use a simplified auth flow or link to existing profile
+    // In a real app, this would be supabase.auth.signInWithOtp({ email })
+    // Here we'll simulate it by creating/fetching a user profile
+    const { data: existingUser, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (existingUser) {
+      setUser({
+        id: existingUser.id,
+        email: existingUser.email,
+        name: existingUser.first_name ? `${existingUser.first_name} ${existingUser.last_name || ''}`.trim() : existingUser.email.split('@')[0],
+        firstName: existingUser.first_name,
+        lastName: existingUser.last_name,
+        loyaltyPoints: existingUser.loyalty_points,
+        walletBalance: existingUser.wallet_balance
+      });
+    } else {
+      const { data: newUser, error: createError } = await supabase
+        .from('users')
+        .insert([{ email, first_name: email.split('@')[0] }])
+        .select()
+        .single();
+      
+      if (newUser) {
+        setUser({
+          id: newUser.id,
+          email: newUser.email,
+          name: newUser.first_name,
+          loyaltyPoints: 0,
+          walletBalance: 0
+        });
+      }
+    }
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
+
+  const addProduct = async (product: Product) => {
+    // Implement database sync here if needed
     setProducts((prev) => [...prev, product]);
   };
 
-  const deleteProduct = (id: string) => {
+  const deleteProduct = async (id: string) => {
     setProducts((prev) => prev.filter((p) => p.id !== id));
   };
 
-  const updateProduct = (id: string, updates: Partial<Product>) => {
+  const updateProduct = async (id: string, updates: Partial<Product>) => {
     setProducts((prev) => prev.map((p) => p.id === id ? { ...p, ...updates } : p));
   };
 
-  const addToCart = (product: Product, quantity = 1) => {
-    setCart((prev) => {
-      const existing = prev.find((item) => item.id === product.id && item.size === product.size);
+  const addToCart = async (product: Product, quantity = 1) => {
+    if (!user) {
+      // Local only for guest, but user wants "real carts" so we mostly expect logged in
+      setCart(prev => [...prev, { ...product, cartItemId: Math.random().toString(36).substr(2, 9), quantity }]);
+      return;
+    }
+
+    try {
+      const { data: cartData } = await supabase
+        .from('shopping_carts')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!cartData) return;
+
+      const { data: existing } = await supabase
+        .from('cart_items')
+        .select('*')
+        .eq('cart_id', cartData.id)
+        .eq('product_id', product.id)
+        .maybeSingle();
+
       if (existing) {
-        return prev.map((item) =>
-          item.cartItemId === existing.cartItemId
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        );
+        const { error } = await supabase
+          .from('cart_items')
+          .update({ quantity: existing.quantity + quantity })
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('cart_items')
+          .insert([{
+            cart_id: cartData.id,
+            product_id: product.id,
+            quantity: quantity
+          }]);
+        if (error) throw error;
       }
-      return [...prev, { ...product, cartItemId: Math.random().toString(36).substr(2, 9), quantity }];
-    });
+      fetchCart(user.id);
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+    }
   };
 
-  const removeFromCart = (cartItemId: string) => {
-    setCart((prev) => prev.filter((item) => item.cartItemId !== cartItemId));
+  const removeFromCart = async (cartItemId: string) => {
+    if (user) {
+      try {
+        await supabase.from('cart_items').delete().eq('id', cartItemId);
+        fetchCart(user.id);
+      } catch (err) {
+        console.error('Error removing from cart:', err);
+      }
+    } else {
+      setCart((prev) => prev.filter((item) => item.cartItemId !== cartItemId));
+    }
   };
 
-  const updateQuantity = (cartItemId: string, quantity: number) => {
+  const updateQuantity = async (cartItemId: string, quantity: number) => {
     if (quantity < 1) return;
-    setCart((prev) =>
-      prev.map((item) => (item.cartItemId === cartItemId ? { ...item, quantity } : item))
-    );
+    if (user) {
+      try {
+        await supabase.from('cart_items').update({ quantity }).eq('id', cartItemId);
+        fetchCart(user.id);
+      } catch (err) {
+        console.error('Error updating quantity:', err);
+      }
+    } else {
+      setCart((prev) =>
+        prev.map((item) => (item.cartItemId === cartItemId ? { ...item, quantity } : item))
+      );
+    }
   };
 
-  const clearCart = () => setCart([]);
+  const clearCart = async () => {
+    if (user) {
+      const { data: cartData } = await supabase
+        .from('shopping_carts')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+      if (cartData) {
+        await supabase.from('cart_items').delete().eq('cart_id', cartData.id);
+        fetchCart(user.id);
+      }
+    } else {
+      setCart([]);
+    }
+  };
 
   return (
-    <AppContext.Provider value={{ user, login, logout, cart, addToCart, removeFromCart, updateQuantity, clearCart, products, addProduct, deleteProduct, updateProduct }}>
+    <AppContext.Provider value={{ user, login, logout, cart, addToCart, removeFromCart, updateQuantity, clearCart, products, isLoading, addProduct, deleteProduct, updateProduct, fetchOrders }}>
       {children}
     </AppContext.Provider>
   );

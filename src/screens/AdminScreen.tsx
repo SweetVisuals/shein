@@ -3,9 +3,11 @@ import { Plus, Image as ImageIcon, Tag, Hash, Save, LayoutDashboard, Trash2, Lis
 import { DesktopLayout } from '../components/layout/DesktopLayout';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { useAppContext } from '../context/AppContext';
+import { supabase } from '../supabase';
+import { useEffect } from 'react';
 
 export const AdminScreen = ({ setScreen }: { setScreen: (s: string) => void }) => {
-  const { products, addProduct, deleteProduct, updateProduct, cart } = useAppContext();
+  const { products, addProduct, deleteProduct, updateProduct, cart, refetchProducts } = useAppContext();
   const [view, setView] = useState<'LIST' | 'CREATE' | 'INVOICE'>('INVOICE');
   const [editingImageId, setEditingImageId] = useState<string | null>(null);
   
@@ -21,6 +23,29 @@ export const AdminScreen = ({ setScreen }: { setScreen: (s: string) => void }) =
   const [seller, setSeller] = useState('');
   const [category, setCategory] = useState('');
   const [savedMessage, setSavedMessage] = useState('');
+  const [latestOrder, setLatestOrder] = useState<any>(null);
+
+  useEffect(() => {
+    if (view === 'INVOICE') {
+      fetchLatestOrder();
+    }
+  }, [view]);
+
+  const fetchLatestOrder = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, order_items(*, products(*)), users(name, email)')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (error) throw error;
+      setLatestOrder(data);
+    } catch (err) {
+      console.error('Error fetching latest order:', err);
+    }
+  };
 
   const openEditModal = (p: any) => {
      setEditModalProduct(p);
@@ -35,33 +60,45 @@ export const AdminScreen = ({ setScreen }: { setScreen: (s: string) => void }) =
      }
   };
 
-  const handleSaveCreate = (e: React.FormEvent) => {
+  const handleSaveCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !price || !imageUrl) return;
 
-    const newProduct = {
-      id: Math.random().toString(36).substr(2, 9),
-      title,
-      price: parseFloat(price),
-      img: imageUrl,
-      seller: seller || 'Independent',
-      stockLabel: 'New Arrival',
-      sold: '0 sold',
-      discount: '',
-      isChoice: false
-    };
+    try {
+      // 1. Ensure seller exists or use default
+      let sellerId = '75d86237-7726-47b2-990a-113543d8108a'; // Default SHEIN seller from seed
+      
+      // 2. Insert product
+      const { data: product, error: prodError } = await supabase
+        .from('products')
+        .insert([{
+          title,
+          base_price: parseFloat(price),
+          main_image: imageUrl,
+          seller_id: sellerId,
+          description: 'New Arrival'
+        }])
+        .select()
+        .single();
 
-    addProduct(newProduct);
-    setSavedMessage('Product created successfully!');
-    setTimeout(() => {
-      setSavedMessage('');
-      setView('LIST');
-    }, 1500);
-    setTitle('');
-    setPrice('');
-    setImageUrl('');
-    setSeller('');
-    setCategory('');
+      if (prodError) throw prodError;
+
+      if (refetchProducts) await refetchProducts();
+
+      setSavedMessage('Product created successfully in Supabase!');
+      setTimeout(() => {
+        setSavedMessage('');
+        setView('LIST');
+      }, 1500);
+      setTitle('');
+      setPrice('');
+      setImageUrl('');
+      setSeller('');
+      setCategory('');
+    } catch (err) {
+      console.error('Error creating product:', err);
+      alert('Failed to save product to database.');
+    }
   };
 
   const AdminContent = () => (
@@ -381,7 +418,7 @@ export const AdminScreen = ({ setScreen }: { setScreen: (s: string) => void }) =
 
                    <div className="text-center mb-6 text-black text-[12px] font-light">-</div>
 
-                   <h3 className="text-[34px] font-bold text-black mb-6 mt-4 leading-tight tracking-tight">Dear Star Nwokeji,</h3>
+                   <h3 className="text-[34px] font-bold text-black mb-6 mt-4 leading-tight tracking-tight">Dear {latestOrder?.users?.name || 'Customer'},</h3>
 
                    <p className="text-[17px] text-black leading-relaxed mb-6 font-normal">
                       Thank you for your order! We hope you enjoyed shopping with us.
@@ -396,17 +433,17 @@ export const AdminScreen = ({ setScreen }: { setScreen: (s: string) => void }) =
                    <div className="flex flex-col gap-10 mb-12">
                        <div>
                            <div className="text-[19px] font-bold text-black mb-3">Order number:</div>
-                           <div className="text-[17px] font-normal text-black">GSO10K49500151G</div>
+                           <div className="text-[17px] font-normal text-black">{latestOrder?.order_number || 'GSO10K49500151G'}</div>
                        </div>
                        
                        <div>
                            <div className="text-[19px] font-bold text-black mb-3">Total Amount:</div>
-                           <div className="text-[17px] font-normal text-black">£27.23</div>
+                           <div className="text-[17px] font-normal text-black">£{latestOrder?.total_amount || '0.00'}</div>
                        </div>
 
                        <div>
                            <div className="text-[19px] font-bold text-black mb-3">Payment Date:</div>
-                           <div className="text-[17px] font-normal text-black">07 Jan 2025</div>
+                           <div className="text-[17px] font-normal text-black">{latestOrder?.created_at ? new Date(latestOrder.created_at).toLocaleDateString() : '-'}</div>
                        </div>
                    </div>
 
@@ -422,19 +459,22 @@ export const AdminScreen = ({ setScreen }: { setScreen: (s: string) => void }) =
                        
                        {/* Table borders for summary */}
                        <div className="border border-gray-200 border-b-0 pt-12 px-5 pb-8">
-                           <div className="w-[120px] h-[120px] mb-5">
-                               <img src={products[0]?.img || "https://images.unsplash.com/photo-1621252179027-94459d278660"} className="w-full h-full object-cover" />
-                           </div>
-                           
-                           <div className="text-[#a1a1aa] text-[15px] leading-relaxed mb-6 font-normal">
-                               {products[0]?.title || '1pc Mini Portable Heat Sealer Machine, 2x AA Battery Powered Plastic Bag Sealer, Small Handheld Electric Heat Sealing Tool For Home Use'}
-                           </div>
-                           
-                           <div className="flex flex-col gap-3 font-bold text-[15px] text-black tracking-tight">
-                               <div>SKU: sv2403091159949468</div>
-                               <div>SIZE: Multicolor-White</div>
-                               <div>QTY: 1</div>
-                           </div>
+                           {latestOrder?.order_items?.map((item: any) => (
+                             <div key={item.id} className="mb-8 last:mb-0">
+                                <div className="w-[120px] h-[120px] mb-5">
+                                    <img src={item.products?.main_image} className="w-full h-full object-cover" />
+                                </div>
+                                
+                                <div className="text-[#a1a1aa] text-[15px] leading-relaxed mb-6 font-normal">
+                                    {item.products?.title}
+                                </div>
+                                
+                                <div className="flex flex-col gap-3 font-bold text-[15px] text-black tracking-tight">
+                                    <div>QTY: {item.quantity}</div>
+                                    <div>PRICE: £{item.unit_price}</div>
+                                </div>
+                             </div>
+                           ))}
                        </div>
                        <div className="border-t border-gray-200"></div>
                    </div>

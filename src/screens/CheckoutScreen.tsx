@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, MapPin, CheckCircle, ShieldCheck, Clock, Hel
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { DesktopLayout } from '../components/layout/DesktopLayout';
 import { useAppContext } from '../context/AppContext';
+import { supabase } from '../supabase';
 
 export const CheckoutScreen = ({ setScreen }: { setScreen: (s: string) => void }) => {
   const { cart, clearCart, user } = useAppContext();
@@ -11,19 +12,104 @@ export const CheckoutScreen = ({ setScreen }: { setScreen: (s: string) => void }
   const [selectedPayment, setSelectedPayment] = useState('card');
   const [showCouponOverlay, setShowCouponOverlay] = useState(true);
 
-  // Deriving values strictly based on screenshot logic if cart exists, else fallback to mock
-  const itemsCount = cart.reduce((sum, item) => sum + item.quantity, 0) || 2;
-  
-  // Real values or mock values that match the screenshot perfectly
-  const retailPrice = 3.26;
-  const shippingFee = 3.00;
-  const promotions = -0.54;
+  // Deriving values strictly based on actual cart
+  const itemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const shippingFee = subtotal > 15 ? 0 : 3.00;
+  const promotions = - (subtotal * 0.1); // 10% discount
   const coupons = -1.36;
-  const orderTotal = 1.36;
-  const saved = 4.90;
+  const orderTotal = Math.max(0, subtotal + shippingFee + promotions + coupons);
+  const saved = Math.abs(promotions + coupons) + (subtotal > 15 ? 3.00 : 0);
 
-  const handlePlaceOrder = () => {
-    setIsSuccess(true);
+  const handlePlaceOrder = async () => {
+    if (!user) {
+      setScreen('AUTH');
+      return;
+    }
+
+    if (cart.length === 0) {
+      alert('Your cart is empty');
+      return;
+    }
+
+    try {
+      // 1. Create the order
+      const orderNumber = 'GSO' + Math.random().toString(36).substr(2, 9).toUpperCase();
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert([{
+          order_number: orderNumber,
+          user_id: user.id,
+          status: 'PAID',
+          shipping_address_json: { 
+             full_name: 'Ann Aggrey-Darkoh', 
+             phone: '0541896517', 
+             address: '20 Limes Avenue, Alfreton, Derbyshire, UK',
+             postal_code: 'DE55 7AS'
+          },
+          subtotal: subtotal,
+          shipping_fee: shippingFee,
+          discount_total: Math.abs(promotions + coupons),
+          total_amount: orderTotal,
+          payment_method: selectedPayment,
+          payment_status: 'PAID',
+          payment_date: new Date().toISOString(),
+          estimated_delivery_start: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          estimated_delivery_end: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        }])
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // 2. Create order items
+      const orderItems = cart.map(item => ({
+        order_id: order.id,
+        product_id: item.id,
+        quantity: item.quantity,
+        unit_price: item.price,
+        total_price: item.price * item.quantity
+      }));
+
+      const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
+      if (itemsError) throw itemsError;
+
+      // 3. Create Shipment and Tracking Number
+      const trackingNumber = 'OJ' + Math.floor(100000000 + Math.random() * 900000000) + 'GB';
+      await supabase
+        .from('shipments')
+        .insert([{
+          order_id: order.id,
+          tracking_number: trackingNumber,
+          carrier: 'SHEIN Express',
+          status: 'PREPARING'
+        }]);
+      
+      // 4. Create Initial Tracking Event
+      const { data: shipment } = await supabase.from('shipments').select('id').eq('order_id', order.id).single();
+      if (shipment) {
+        await supabase.from('tracking_events').insert([{
+          shipment_id: shipment.id,
+          status: 'Order Placed',
+          location: 'Distribution Center',
+          description: 'Your order has been placed and is being prepared for shipment.'
+        }]);
+      }
+
+      // 5. Update user loyalty points
+      const newPoints = (user.loyaltyPoints || 0) + Math.floor(orderTotal);
+      await supabase
+        .from('users')
+        .update({ loyalty_points: newPoints })
+        .eq('id', user.id);
+
+      // 6. Clear Cart
+      await clearCart();
+      setIsSuccess(true);
+    } catch (err) {
+      console.error('Error placing order:', err);
+      alert('Failed to place order. Please try again.');
+    }
   };
 
   if (isSuccess) {
@@ -343,7 +429,7 @@ export const CheckoutScreen = ({ setScreen }: { setScreen: (s: string) => void }
             <div className="bg-white mb-2 p-3 pb-4">
                <div className="flex justify-between items-center mb-3">
                   <span className="text-gray-800 text-sm">Retail Price: <span className="text-gray-400 ml-1">{itemsCount} Items</span></span>
-                  <span className="font-bold text-gray-800 text-sm">£{(retailPrice).toFixed(2)}</span>
+                  <span className="font-bold text-gray-800 text-sm">£{(subtotal).toFixed(2)}</span>
                </div>
                
                <div className="flex justify-between items-center mb-3">

@@ -13,8 +13,8 @@ export const MobileHeader = () => {
       
       <div className="relative z-10 pt-safe">
         {/* SHEIN Logo */}
-        <div className="flex justify-center pt-2 h-7 overflow-hidden mb-1">
-           <img src="https://upload.wikimedia.org/wikipedia/commons/2/25/Shein-logo.png" alt="SHEIN" className="h-6 object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
+        <div className="flex justify-center pt-2 h-8 mb-1">
+           <img src="https://upload.wikimedia.org/wikipedia/commons/2/25/Shein-logo.png" alt="SHEIN" className="h-full object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
         </div>
 
         {/* Search Bar Row */}

@@ -16,12 +16,15 @@ export const ProfileScreen = ({ setScreen }: { setScreen: (s: string) => void })
                <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200">
                   <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=150&auto=format&fit=crop" className="w-full h-full object-cover" />
                </div>
-               <div>
-                  <h1 className="font-bold text-lg">Hi, {user?.name || 'Guest'}</h1>
-                  <span className="bg-gray-200 text-gray-500 text-[10px] px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-bold">
-                     <span className="text-[10px]">👑</span> S0 {'>'}
-                  </span>
-               </div>
+                <div>
+                   <h1 className="font-bold text-lg">Hi, {user?.name || 'Guest'}</h1>
+                   <div className="flex flex-col gap-0.5">
+                     <span className="text-[10px] text-gray-500 font-medium">{user?.email}</span>
+                     <span className="bg-gray-200 text-gray-500 text-[10px] px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-bold w-fit">
+                        <span className="text-[10px]">👑</span> S0 {'>'}
+                     </span>
+                   </div>
+                </div>
             </div>
             <div className="flex items-center gap-4 text-gray-800">
                <HeadphonesIcon size={24} strokeWidth={1.5} />
@@ -36,14 +39,16 @@ export const ProfileScreen = ({ setScreen }: { setScreen: (s: string) => void })
                    <span className="font-bold text-lg">3</span>
                    <span className="text-xs text-gray-500 mt-1">Coupons</span>
                 </div>
-                <div className="flex flex-col items-center">
-                   <span className="font-bold text-lg">0</span>
-                   <span className="text-xs text-gray-500 mt-1">Points</span>
-                </div>
-                <div className="flex flex-col items-center">
-                   <Wallet size={20} className="mb-1 text-gray-800" strokeWidth={1.5} />
-                   <span className="text-xs text-gray-500">Wallet</span>
-                </div>
+                 <div className="flex flex-col items-center">
+                    <span className="font-bold text-lg">{user?.loyaltyPoints || 0}</span>
+                    <span className="text-xs text-gray-500 mt-1">Points</span>
+                 </div>
+                 <div className="flex flex-col items-center">
+                    <div className="flex flex-col items-center">
+                      <span className="font-bold text-lg">£{user?.walletBalance || '0.00'}</span>
+                      <span className="text-xs text-gray-500">Wallet</span>
+                    </div>
+                 </div>
                 <div className="flex flex-col items-center">
                    <Gift size={20} className="mb-1 text-gray-800" strokeWidth={1.5} />
                    <span className="text-xs text-gray-500">Gift Card</span>
