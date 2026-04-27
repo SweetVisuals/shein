@@ -53,7 +53,7 @@ const DealCard = ({ title, items, badge }: { title: React.ReactNode, items: any[
              </button>
           </div>
           <div className="flex flex-col leading-tight mt-1">
-            <span className="text-[#D92534] font-black text-[13px] tracking-tight">£{item.price}</span>
+            <span className="text-[#D92534] font-black text-[13px] tracking-tight">£{parseFloat(item.price).toFixed(2)}</span>
             {item.bottom_text && (
               <span className={`text-[10px] font-medium mt-0.5 ${item.bottom_text_color === 'purple' ? 'text-[#a752c4]' : 'text-[#D92534]'}`}>
                 {item.bottom_text}

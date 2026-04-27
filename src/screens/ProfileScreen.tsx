@@ -89,7 +89,7 @@ export const ProfileScreen = ({ setScreen }: { setScreen: (s: string) => void })
                  </div>
                  <div className="flex flex-col items-center">
                     <div className="flex flex-col items-center">
-                      <span className="font-bold text-[17px] leading-none">£{user?.walletBalance || '0.00'}</span>
+                      <span className="font-bold text-[17px] leading-none">£{(user?.walletBalance ?? 0).toFixed(2)}</span>
                       <span className="text-[10px] text-gray-500 mt-1.5 uppercase font-bold tracking-tight">Wallet</span>
                     </div>
                  </div>

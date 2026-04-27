@@ -1,7 +1,17 @@
 import React from 'react';
 import { User, ShoppingBag, Heart, Headset, Globe, Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 
+import { useAppContext } from '../../context/AppContext';
+
 export const DesktopHeader = () => {
+  const { searchQuery, setSearchQuery, navigateTo } = useAppContext();
+  const [localQuery, setLocalQuery] = React.useState(searchQuery);
+
+  const handleSearch = () => {
+    setSearchQuery(localQuery);
+    navigateTo('PLP');
+  };
+
   const mainNav = ['New In', '3-Day Delivery', 'Sale', 'Women Clothing', 'Beachwear', 'Curve', 'Kids', 'Men Clothing', 'Home & Living', 'Underwear & Sleepwear', 'Shoes', 'Jewelry & Accessories', 'Beauty & Health'];
 
   return (
@@ -20,13 +30,16 @@ export const DesktopHeader = () => {
         {/* Search */}
         <div className="flex-1 max-w-[600px] mx-8 flex">
           <div className="relative w-full flex items-center">
-            <span className="absolute left-3 text-red-500 font-bold text-sm">⬆ Shorts</span>
+            {!localQuery && <span className="absolute left-3 text-red-500 font-bold text-sm pointer-events-none">⬆ Shorts</span>}
             <input 
               type="text" 
-              className="w-full h-10 bg-white text-black pl-24 pr-4 border-none outline-none focus:ring-0"
+              className={`w-full h-10 bg-white text-black pr-4 border-none outline-none focus:ring-0 ${localQuery ? 'pl-4' : 'pl-24'}`}
               placeholder=""
+              value={localQuery}
+              onChange={(e) => setLocalQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             />
-            <button className="bg-black border border-white text-white h-10 px-6 ml-[-1px] hover:opacity-90 flex items-center justify-center transition-opacity">
+            <button onClick={handleSearch} className="bg-black border border-white text-white h-10 px-6 ml-[-1px] hover:opacity-90 flex items-center justify-center transition-opacity">
               <Search size={20} />
             </button>
           </div>

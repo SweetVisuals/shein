@@ -3,7 +3,7 @@ import { Mail, Calendar, Heart, Search, Camera, Menu, ShoppingCart } from 'lucid
 import { useAppContext } from '../../context/AppContext';
 
 export const MobileHeader = ({ setScreen }: { setScreen?: (s: string) => void }) => {
-  const { cart, heroTabs, activeHeroTab, setActiveHeroTab } = useAppContext();
+  const { cart, heroTabs, activeHeroTab, setActiveHeroTab, searchQuery } = useAppContext();
   const activeTabObj = heroTabs?.find(t => t.title === activeHeroTab);
   const [isScrolled, setIsScrolled] = useState(false);
   
@@ -45,7 +45,7 @@ export const MobileHeader = ({ setScreen }: { setScreen?: (s: string) => void })
             className="flex-1 rounded-[4px] h-[42px] flex items-center pl-3 pr-0.5 overflow-hidden cursor-text border border-gray-100 bg-gray-50"
           >
             <span className="flex-1 text-[13px] font-medium text-gray-800">
-              Fidget Toys <span className="text-[12px]">🔥</span>
+              {searchQuery ? searchQuery : <>Fidget Toys <span className="text-[12px]">🔥</span></>}
             </span>
             <div className="flex items-center h-full gap-1">
               <Camera size={20} className="text-gray-400 mr-1" strokeWidth={1.5} />

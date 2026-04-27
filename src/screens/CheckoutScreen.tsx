@@ -8,6 +8,7 @@ import { supabase } from '../supabase';
 export const CheckoutScreen = ({ setScreen }: { setScreen: (s: string) => void }) => {
   const { cart, clearCart, user } = useAppContext();
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedShipping, setSelectedShipping] = useState('standard');
   const [selectedPayment, setSelectedPayment] = useState('card');
   const [showCouponOverlay, setShowCouponOverlay] = useState(true);
@@ -33,6 +34,11 @@ export const CheckoutScreen = ({ setScreen }: { setScreen: (s: string) => void }
     }
 
     try {
+      setIsLoading(true);
+      
+      // Artificial delay of 3 seconds as requested
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
       // 1. Create the order
       const orderNumber = 'GSO' + Math.random().toString(36).substr(2, 9).toUpperCase();
       const { data: order, error: orderError } = await supabase
@@ -40,7 +46,7 @@ export const CheckoutScreen = ({ setScreen }: { setScreen: (s: string) => void }
         .insert([{
           order_number: orderNumber,
           user_id: user.id,
-          status: 'PAID',
+          status: 'PROCESSING',
           shipping_address_json: { 
              full_name: 'Ann Aggrey-Darkoh', 
              phone: '0541896517', 
@@ -109,8 +115,21 @@ export const CheckoutScreen = ({ setScreen }: { setScreen: (s: string) => void }
     } catch (err) {
       console.error('Error placing order:', err);
       alert('Failed to place order. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <MobileLayout hideNav>
+        <div className="bg-white min-h-screen flex flex-col items-center justify-center">
+          <div className="w-12 h-12 border-4 border-gray-100 border-t-black rounded-full animate-spin-slow mb-4"></div>
+          <p className="text-[14px] text-gray-500 font-medium">Processing your order...</p>
+        </div>
+      </MobileLayout>
+    );
+  }
 
   if (isSuccess) {
     return (
@@ -241,31 +260,49 @@ export const CheckoutScreen = ({ setScreen }: { setScreen: (s: string) => void }
                   We aim to deliver your order on time! <Clock size={12} className="ml-auto" /> Last Chance!
                </div>
 
-               <div className="flex gap-3 overflow-x-auto no-scrollbar">
+               <div className="flex flex-col gap-3 mt-2">
                   {cart.length > 0 ? cart.map((item, index) => (
-                     <div key={item.cartItemId} className="flex flex-col flex-shrink-0 w-[70px]">
-                        <div className="w-[70px] h-[90px] relative bg-gray-100 rounded-sm overflow-hidden mb-1">
+                     <div key={item.cartItemId} className="flex gap-3">
+                        <div className="w-[70px] h-[90px] relative bg-gray-100 rounded-[2px] overflow-hidden flex-shrink-0">
                            <img src={item.img} className="w-full h-full object-cover" />
-                           <div className="absolute bottom-0 w-full bg-gradient-to-r from-red-600 to-orange-500 text-white text-[9px] text-center py-0.5 leading-tight">
+                           <div className="absolute bottom-0 w-full bg-[#f94e27] text-white text-[9px] text-center py-0.5 leading-tight font-bold">
                               {index === 0 ? '9 Left' : 'May Sell Out'}
                            </div>
                         </div>
-                        <div className="flex items-center gap-1 mx-auto text-[11px]">
-                           <span className="text-red-500 font-bold">£{item.price.toFixed(2)}</span>
-                           <span className="bg-[#FFF0F2] text-red-500 px-0.5 rounded-sm">-{(item.originalPrice ? ((item.originalPrice - item.price) / item.originalPrice * 100).toFixed(0) : 50)}%</span>
+                        <div className="flex-1 flex flex-col justify-between py-0.5">
+                           <div>
+                              <h4 className="text-[13px] text-gray-900 leading-snug font-medium line-clamp-2 pr-2">{item.title}</h4>
+                              <div className="text-[11px] text-gray-500 mt-1">{item.size || 'Blue / Multicolor'}</div>
+                           </div>
+                           <div className="flex items-end justify-between">
+                              <div className="flex items-center gap-1">
+                                 <span className="text-red-500 font-bold text-[15px]">£{item.price.toFixed(2)}</span>
+                                 <span className="text-gray-400 text-[11px] line-through">£{(item.originalPrice || (item.price * 1.5)).toFixed(2)}</span>
+                              </div>
+                              <span className="text-[13px] text-gray-600 font-medium">x{item.quantity}</span>
+                           </div>
                         </div>
                      </div>
                   )) : (
-                     <div className="w-[70px] flex flex-col flex-shrink-0">
-                        <div className="w-[70px] h-[90px] relative bg-gray-100 rounded-sm overflow-hidden mb-1">
+                     <div className="flex gap-3">
+                        <div className="w-[70px] h-[90px] relative bg-gray-100 rounded-[2px] overflow-hidden flex-shrink-0">
                            <img src="https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?q=80&w=200&auto=format&fit=crop" className="w-full h-full object-cover" />
-                           <div className="absolute bottom-0 w-full bg-gradient-to-r from-red-600 to-orange-500 text-white text-[9px] text-center py-0.5 leading-tight">
+                           <div className="absolute bottom-0 w-full bg-[#f94e27] text-white text-[9px] text-center py-0.5 leading-tight font-bold">
                               9 Left
                            </div>
                         </div>
-                        <div className="flex items-baseline gap-1 mt-1 text-[11px]">
-                           <span className="text-red-500 font-bold">£0.29</span>
-                           <span className="bg-[#FFF0F2] text-red-500 px-0.5 rounded-sm">-50%</span>
+                        <div className="flex-1 flex flex-col justify-between py-0.5">
+                           <div>
+                              <h4 className="text-[13px] text-gray-900 leading-snug font-medium line-clamp-2 pr-2">Sample Product</h4>
+                              <div className="text-[11px] text-gray-500 mt-1">Default Size</div>
+                           </div>
+                           <div className="flex items-end justify-between">
+                              <div className="flex items-center gap-1">
+                                 <span className="text-red-500 font-bold text-[15px]">£0.29</span>
+                                 <span className="text-gray-400 text-[11px] line-through">£0.58</span>
+                              </div>
+                              <span className="text-[13px] text-gray-600 font-medium">x1</span>
+                           </div>
                         </div>
                      </div>
                   )}

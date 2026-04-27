@@ -60,6 +60,14 @@ interface AppContextType {
   updateHeroTab: (id: string, updates: any) => Promise<void>;
   activeHeroTab: string;
   setActiveHeroTab: (title: string) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  selectedOrderId: string | null;
+  setSelectedOrderId: (id: string | null) => void;
+  sellers: any[];
+  addSeller: (seller: any) => Promise<void>;
+  updateSeller: (id: string, updates: any) => Promise<void>;
+  deleteSeller: (id: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -518,7 +526,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [homepageSections, setHomepageSections] = useState<any[]>([]);
   const [heroTabs, setHeroTabs] = useState<any[]>([]);
   const [activeHeroTab, setActiveHeroTab] = useState<string>('All');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [sellers, setSellers] = useState<any[]>([]);
   const [history, setHistory] = useState(['SPLASH']);
   const screen = history[history.length - 1];
 
@@ -539,6 +550,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     fetchCategories();
     fetchHomepageSections();
     fetchHeroTabs();
+    fetchSellers();
     checkUser();
   }, []);
 
@@ -570,24 +582,34 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         cartData = newCart;
       }
 
-      // Fetch items
       const { data: items, error: itemsError } = await supabase
         .from('cart_items')
-        .select('*, products(*)')
+        .select('*, products(*, sellers(name))')
         .eq('cart_id', cartData.id);
 
       if (itemsError) throw itemsError;
 
       if (items) {
-        const formatted = items.map(item => ({
-          id: item.product_id,
-          cartItemId: item.id,
-          quantity: item.quantity,
-          title: item.products?.title || 'Unknown Product',
-          price: item.products?.base_price ? parseFloat(item.products.base_price) : 0,
-          img: item.products?.main_image || 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=200&auto=format&fit=crop',
-          seller: item.products?.seller_id || ''
-        }));
+        const sellerNames = ['Luvlette', '23 Fashion', 'Romwe', 'Zaful', 'Dazy', 'Motf', 'Emery Rose', 'Musera', 'Cuccoo', 'sumwon', 'Glowmode'];
+
+        const formatted = items.map(item => {
+          let sellerName = item.products?.sellers?.name || item.products?.seller_id || '';
+          // If sellerName is missing or is a UUID (long random string), use a deterministic name from the list
+          if (!sellerName || sellerName.length > 20) {
+            const index = item.product_id ? item.product_id.charCodeAt(0) % sellerNames.length : Math.floor(Math.random() * sellerNames.length);
+            sellerName = sellerNames[index] || 'SHEIN';
+          }
+          
+          return {
+            id: item.product_id,
+            cartItemId: item.id,
+            quantity: item.quantity,
+            title: item.products?.title || 'Unknown Product',
+            price: item.products?.base_price ? parseFloat(item.products.base_price) : 0,
+            img: item.products?.main_image || 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=200&auto=format&fit=crop',
+            seller: sellerName
+          };
+        });
         setCart(formatted);
       }
     } catch (err) {
@@ -685,6 +707,49 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       setCategories(data || []);
     } catch (err) {
       console.error('Error fetching categories:', err);
+    }
+  };
+
+  const fetchSellers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('sellers')
+        .select('*')
+        .order('name');
+      if (error) throw error;
+      setSellers(data || []);
+    } catch (err) {
+      console.error('Error fetching sellers:', err);
+    }
+  };
+
+  const addSeller = async (seller: any) => {
+    try {
+      const { error } = await supabase.from('sellers').insert([seller]);
+      if (error) throw error;
+      fetchSellers();
+    } catch (err) {
+      console.error('Error adding seller:', err);
+    }
+  };
+
+  const updateSeller = async (id: string, updates: any) => {
+    try {
+      const { error } = await supabase.from('sellers').update(updates).eq('id', id);
+      if (error) throw error;
+      fetchSellers();
+    } catch (err) {
+      console.error('Error updating seller:', err);
+    }
+  };
+
+  const deleteSeller = async (id: string) => {
+    try {
+      const { error } = await supabase.from('sellers').delete().eq('id', id);
+      if (error) throw error;
+      fetchSellers();
+    } catch (err) {
+      console.error('Error deleting seller:', err);
     }
   };
 
@@ -1064,6 +1129,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       setActiveHeroTab,
       selectedProduct,
       setSelectedProduct,
+      searchQuery,
+      setSearchQuery,
+      selectedOrderId,
+      setSelectedOrderId,
       screen,
       history,
       navigateTo,

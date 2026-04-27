@@ -8,6 +8,7 @@ export const OrdersScreen = ({ setScreen }: { setScreen: (s: string) => void }) 
   const { user } = useAppContext();
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('Processing');
 
   useEffect(() => {
     if (user) {
@@ -32,6 +33,31 @@ export const OrdersScreen = ({ setScreen }: { setScreen: (s: string) => void }) 
     }
   };
 
+  const handleConfirmOrder = async (orderId: string) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'SHIPPED' })
+        .eq('id', orderId);
+      
+      if (error) throw error;
+      fetchOrders();
+    } catch (err) {
+      console.error('Error confirming order:', err);
+      alert('Failed to confirm order');
+    }
+  };
+
+  const filteredOrders = orders.filter(order => {
+    if (activeTab === 'Unpaid') return order.status === 'UNPAID';
+    if (activeTab === 'Processing') return order.status === 'PROCESSING' || order.status === 'PAID';
+    if (activeTab === 'Shipped') return order.status === 'SHIPPED';
+    if (activeTab === 'Review') return order.status === 'REVIEW' || order.status === 'DELIVERED';
+    if (activeTab === 'Returns') return order.status === 'RETURNED';
+    return true;
+  });
+
+
   return (
     <div className="block lg:hidden">
       <MobileLayout hideNav>
@@ -44,15 +70,19 @@ export const OrdersScreen = ({ setScreen }: { setScreen: (s: string) => void }) 
           
           {/* Tabs */}
           <div className="bg-white flex justify-between px-4 py-3 text-sm border-b border-gray-100 sticky top-[53px] z-40 shadow-sm">
-             <div className="text-gray-500 whitespace-nowrap">Unpaid</div>
-             <div className="text-gray-500 whitespace-nowrap">Processing</div>
-             <div className="text-black font-bold border-b-2 border-black pb-2 -mb-3 whitespace-nowrap">Shipped</div>
-             <div className="text-gray-500 whitespace-nowrap">Review</div>
-             <div className="text-gray-500 whitespace-nowrap">Returns</div>
+             {['Unpaid', 'Processing', 'Shipped', 'Review', 'Returns'].map(tab => (
+               <div 
+                 key={tab}
+                 onClick={() => setActiveTab(tab)}
+                 className={`whitespace-nowrap cursor-pointer ${activeTab === tab ? 'text-black font-bold border-b-2 border-black pb-2 -mb-3' : 'text-gray-500'}`}
+               >
+                 {tab}
+               </div>
+             ))}
           </div>
 
           <div className="p-3">
-             {orders.length > 0 ? orders.map((order) => (
+             {filteredOrders.length > 0 ? filteredOrders.map((order) => (
                 <div key={order.id} className="bg-white rounded-md p-3 mb-3 shadow-sm border-none">
                    <div className="flex justify-between items-center mb-3 text-sm pb-3 border-b border-gray-50">
                       <div className="text-gray-500 font-bold">Order NO. {order.order_number}</div>
@@ -89,18 +119,25 @@ export const OrdersScreen = ({ setScreen }: { setScreen: (s: string) => void }) 
 
                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-50">
                       <div className="text-gray-800 text-sm">
-                         Total: <span className="font-bold">£{order.total_amount}</span> ({order.order_items.length} items)
+                         Total: <span className="font-bold">£{parseFloat(order.total_amount).toFixed(2)}</span> ({order.order_items.length} items)
                       </div>
-                      <div className="flex gap-2">
-                         <button 
-                           onClick={() => setScreen('TRACKING')} 
-                           className="border border-gray-200 rounded-full px-4 py-1.5 text-xs font-bold text-gray-700"
-                         >
-                           Track
-                         </button>
-                         <button className="border border-black bg-black rounded-full px-4 py-1.5 text-xs font-bold text-white shadow-sm">Confirm</button>
-                      </div>
-                   </div>
+                       <div className="flex gap-2">
+                          <button 
+                            onClick={() => setScreen('TRACKING')} 
+                            className="border border-gray-200 rounded-full px-4 py-1.5 text-xs font-bold text-gray-700"
+                          >
+                            Track
+                          </button>
+                          {order.status === 'PROCESSING' && (
+                            <button 
+                              onClick={() => handleConfirmOrder(order.id)}
+                              className="border border-black bg-black rounded-full px-4 py-1.5 text-xs font-bold text-white shadow-sm"
+                            >
+                              Confirm
+                            </button>
+                          )}
+                       </div>
+                    </div>
                 </div>
              )) : (
                <div className="text-center py-20">

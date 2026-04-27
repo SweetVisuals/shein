@@ -2,8 +2,16 @@ import React from 'react';
 import { ChevronLeft, Camera, Search, ArrowUp } from 'lucide-react';
 import { MobileLayout } from '../components/layout/MobileLayout';
 import { DesktopLayout } from '../components/layout/DesktopLayout';
+import { useAppContext } from '../context/AppContext';
 
 export const SearchScreen = ({ setScreen }: { setScreen: (s: string) => void }) => {
+  const { goBack, searchQuery, setSearchQuery } = useAppContext();
+  const [localQuery, setLocalQuery] = React.useState(searchQuery);
+
+  const handleSearch = () => {
+    setSearchQuery(localQuery);
+    setScreen('PLP');
+  };
   const trendingSearches = [
      { rank: 1, name: 'Need Doh', img: 'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?q=80&w=100&auto=format&fit=crop' },
      { rank: 2, name: 'Modest Summer Ou...', img: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?q=80&w=100&auto=format&fit=crop' },
@@ -27,9 +35,17 @@ export const SearchScreen = ({ setScreen }: { setScreen: (s: string) => void }) 
           <div className="bg-white px-4 py-2 sticky top-0 z-10 border-b border-gray-100 flex gap-3 items-center">
              <button onClick={() => goBack()}><ChevronLeft size={28} className="text-black" /></button>
              <div className="flex-1 bg-white border border-gray-300 rounded-sm h-10 flex items-center pr-1 overflow-hidden">
-               <input type="text" autoFocus placeholder="jeans" className="flex-1 h-full pl-3 outline-none text-black bg-transparent" />
+               <input 
+                  type="text" 
+                  autoFocus 
+                  placeholder="jeans" 
+                  className="flex-1 h-full pl-3 outline-none text-black bg-transparent"
+                  value={localQuery}
+                  onChange={(e) => setLocalQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+               />
                <button className="px-2"><Camera size={20} className="text-gray-400" /></button>
-               <button onClick={() => setScreen('PLP')} className="bg-black text-white h-8 w-10 flex items-center justify-center rounded-sm">
+               <button onClick={handleSearch} className="bg-black text-white h-8 w-10 flex items-center justify-center rounded-sm">
                  <Search size={18} />
                </button>
              </div>

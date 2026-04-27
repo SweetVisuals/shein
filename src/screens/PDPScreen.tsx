@@ -107,9 +107,12 @@ export const PDPScreen = ({ setScreen, goBack }: { setScreen: (s: string) => voi
                    1.2k+ Sold <span className="text-[10px] inline-flex items-center justify-center w-3 h-3 border border-gray-300 rounded-full">i</span>
                 </div>
              </div>
-             <div className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-sm inline-flex items-center gap-1 mb-3">
+              <div className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-sm inline-flex items-center gap-1 mb-1">
                 🚚 Free Shipping
-             </div>
+              </div>
+              <div className="text-[11px] text-gray-500 font-bold mb-3 flex items-center gap-1">
+                 Shop: <span className="text-black uppercase tracking-wider">{product.seller || 'SHEIN'}</span>
+              </div>
 
              <div className="flex justify-between items-start gap-4 mb-2">
                 <h1 className="font-bold text-sm text-gray-800 leading-snug flex-1">

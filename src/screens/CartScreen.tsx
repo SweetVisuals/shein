@@ -236,7 +236,7 @@ export const CartScreen = ({ setScreen, goBack }: { setScreen: (s: string) => vo
              <div className="flex items-center justify-between py-2 px-3 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] border-t border-gray-100">
                  <div className="flex flex-col flex-shrink-0">
                     <div className="flex items-baseline gap-0.5 relative">
-                       <span className="text-[#f94e27] font-black text-[22px] leading-none tracking-tight">£{Math.floor(totalPrice)}<span className="text-[14px]">.{(totalPrice * 100 % 100).toString().padStart(2, '0')}</span></span>
+                       <span className="text-[#f94e27] font-black text-[22px] leading-none tracking-tight">£{Math.floor(totalPrice)}<span className="text-[14px]">.{totalPrice.toFixed(2).split('.')[1]}</span></span>
                     </div>
                     <div className="text-gray-500 text-[11px] flex items-center mt-0.5">
                        Saved £45.07 <ChevronRight size={12} className="-rotate-90 ml-0.5 stroke-[2px]" />

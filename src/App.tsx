@@ -17,6 +17,7 @@ import { ProfileScreen } from './screens/ProfileScreen';
 import { OrdersScreen } from './screens/OrdersScreen';
 import { TrackingScreen } from './screens/TrackingScreen';
 import { AdminScreen } from './screens/AdminScreen';
+import { EmailConfirmationScreen } from './screens/EmailConfirmationScreen';
 
 function AppContent() {
   const { screen, navigateTo, goBack } = useAppContext();
@@ -36,6 +37,7 @@ function AppContent() {
       {screen === 'ORDERS' && <OrdersScreen setScreen={setScreen} navigateTo={navigateTo} goBack={goBack} />}
       {screen === 'TRACKING' && <TrackingScreen setScreen={setScreen} navigateTo={navigateTo} goBack={goBack} />}
       {screen === 'ADMIN' && <AdminScreen setScreen={setScreen} navigateTo={navigateTo} goBack={goBack} />}
+      {screen === 'EMAIL_CONFIRMATION' && <EmailConfirmationScreen setScreen={setScreen} navigateTo={navigateTo} goBack={goBack} />}
     </>
   );
 }

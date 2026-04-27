@@ -12,10 +12,13 @@ export const AdminScreen = ({ setScreen, goBack }: { setScreen: (s: string) => v
     categories, updateCategory, 
     homepageSections, updateHomepageSection,
     user, updateUser,
-    heroTabs, updateHeroTab
+    heroTabs, updateHeroTab,
+    setSelectedOrderId,
+    sellers, addSeller, updateSeller, deleteSeller
   } = useAppContext();
   
-  const [view, setView] = useState<'LIST' | 'CREATE' | 'INVOICE' | 'CATEGORIES' | 'HOMEPAGE' | 'PROFILE' | 'HEROTABS'>('HOMEPAGE');
+  const [view, setView] = useState<'LIST' | 'CREATE' | 'INVOICE' | 'CATEGORIES' | 'HOMEPAGE' | 'PROFILE' | 'HEROTABS' | 'EMAILS' | 'SELLERS'>('HOMEPAGE');
+  const [allOrders, setAllOrders] = useState<any[]>([]);
   
   // Homepage Management State
   const [editingSection, setEditingSection] = useState<any | null>(null);
@@ -34,9 +37,14 @@ export const AdminScreen = ({ setScreen, goBack }: { setScreen: (s: string) => v
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [seller, setSeller] = useState('');
+  const [sellerId, setSellerId] = useState('');
   const [category, setCategory] = useState('');
   const [savedMessage, setSavedMessage] = useState('');
+
+  // Seller Form State
+  const [sellerName, setSellerName] = useState('');
+  const [sellerRating, setSellerRating] = useState('4.8');
+  const [editingSeller, setEditingSeller] = useState<any | null>(null);
 
   // Edit Modal State
   const [editModalProduct, setEditModalProduct] = useState<any | null>(null);
@@ -89,6 +97,26 @@ export const AdminScreen = ({ setScreen, goBack }: { setScreen: (s: string) => v
     }
   };
 
+  const fetchAllOrders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, order_items(*, products(*)), users(first_name, last_name, email)')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setAllOrders(data || []);
+    } catch (err) {
+      console.error('Error fetching all orders:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (view === 'EMAILS') {
+      fetchAllOrders();
+    }
+  }, [view]);
+
   const handleSaveCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !price || !imageUrl) return;
@@ -97,7 +125,8 @@ export const AdminScreen = ({ setScreen, goBack }: { setScreen: (s: string) => v
       await addProduct({
         title,
         price: parseFloat(price),
-        img: imageUrl
+        img: imageUrl,
+        seller_id: sellerId
       });
 
       setSavedMessage('Product created successfully!');
@@ -108,6 +137,7 @@ export const AdminScreen = ({ setScreen, goBack }: { setScreen: (s: string) => v
       setTitle('');
       setPrice('');
       setImageUrl('');
+      setSellerId('');
     } catch (err) {
       console.error('Error creating product:', err);
     }
@@ -135,13 +165,17 @@ export const AdminScreen = ({ setScreen, goBack }: { setScreen: (s: string) => v
      setEditImg(p.img);
   };
 
-  const saveEdit = async () => {
-     if (editModalProduct) {
-        await updateProduct(editModalProduct.id, { title: editTitle, img: editImg });
-        setEditModalProduct(null);
-        alert('Product updated successfully!');
-     }
-  };
+   const saveEdit = async () => {
+      if (editModalProduct) {
+         await updateProduct(editModalProduct.id, { 
+           title: editTitle, 
+           img: editImg,
+           seller_id: sellerId || editModalProduct.seller_id 
+         });
+         setEditModalProduct(null);
+         alert('Product updated successfully!');
+      }
+   };
 
   const saveProfile = async () => {
     if (user) {
@@ -210,6 +244,12 @@ export const AdminScreen = ({ setScreen, goBack }: { setScreen: (s: string) => v
           </button>
           <button onClick={() => setView('INVOICE')} className={`pb-2 lg:pb-3 text-xs lg:text-sm font-bold flex items-center gap-1 lg:gap-2 whitespace-nowrap ${view === 'INVOICE' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}>
             <Mail size={16} /> Invoices
+          </button>
+           <button onClick={() => setView('EMAILS')} className={`pb-2 lg:pb-3 text-xs lg:text-sm font-bold flex items-center gap-1 lg:gap-2 whitespace-nowrap ${view === 'EMAILS' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}>
+            <Mail size={16} /> Order Emails
+          </button>
+          <button onClick={() => setView('SELLERS')} className={`pb-2 lg:pb-3 text-xs lg:text-sm font-bold flex items-center gap-1 lg:gap-2 whitespace-nowrap ${view === 'SELLERS' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}>
+            <User size={16} /> Sellers
           </button>
       </div>
 
@@ -419,6 +459,20 @@ export const AdminScreen = ({ setScreen, goBack }: { setScreen: (s: string) => v
                   <label className="block text-xs font-bold text-gray-700">Image URL</label>
                   <input type="url" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="mt-1 block w-full p-2 border border-gray-300 rounded-sm text-xs" required />
                 </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700">Seller</label>
+                  <select 
+                    value={sellerId} 
+                    onChange={(e) => setSellerId(e.target.value)} 
+                    className="mt-1 block w-full p-2 border border-gray-300 rounded-sm text-xs"
+                    required
+                  >
+                    <option value="">Select a seller...</option>
+                    {sellers.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <button type="submit" className="bg-black text-white px-6 py-2.5 rounded-sm font-bold text-xs uppercase tracking-wider">Save Product</button>
             </form>
@@ -447,7 +501,7 @@ export const AdminScreen = ({ setScreen, goBack }: { setScreen: (s: string) => v
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Total Amount:</span>
-                  <span className="font-bold">£{latestOrder.total_amount}</span>
+                  <span className="font-bold">£{parseFloat(latestOrder.total_amount).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Date:</span>
@@ -463,7 +517,7 @@ export const AdminScreen = ({ setScreen, goBack }: { setScreen: (s: string) => v
                     <div className="flex-1">
                       <div className="text-xs font-bold text-gray-800 line-clamp-1">{item.products?.title}</div>
                       <div className="text-xs text-gray-500 mt-1">Qty: {item.quantity}</div>
-                      <div className="text-xs font-bold mt-1">£{item.unit_price}</div>
+                      <div className="text-xs font-bold mt-1">£{parseFloat(item.unit_price).toFixed(2)}</div>
                     </div>
                   </div>
                 ))}
@@ -476,6 +530,114 @@ export const AdminScreen = ({ setScreen, goBack }: { setScreen: (s: string) => v
           ) : (
             <div className="text-center py-20 text-gray-500 italic">No orders found yet.</div>
           )}
+        </div>
+      )}
+
+      {view === 'SELLERS' && (
+        <div className="bg-white lg:shadow-sm rounded-sm lg:border border-gray-200 overflow-hidden">
+          <div className="px-4 lg:px-6 py-3 lg:py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+            <h2 className="text-sm lg:text-lg font-bold text-gray-900">Manage Sellers</h2>
+            <button 
+              onClick={() => {
+                setEditingSeller(null);
+                setSellerName('');
+                setSellerRating('4.8');
+              }}
+              className="bg-black text-white px-3 py-1.5 text-xs font-bold rounded-sm"
+            >
+              + Add Seller
+            </button>
+          </div>
+          <div className="p-4 lg:p-6 space-y-6">
+            <div className="bg-gray-50 p-4 border rounded-sm">
+              <h3 className="font-bold text-sm mb-4">{editingSeller ? 'Edit Seller' : 'Create New Seller'}</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Seller Name</label>
+                  <input type="text" value={sellerName} onChange={(e) => setSellerName(e.target.value)} className="w-full p-2 border rounded-sm text-xs" placeholder="e.g. Romwe" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Rating (0-5)</label>
+                  <input type="number" step="0.1" min="0" max="5" value={sellerRating} onChange={(e) => setSellerRating(e.target.value)} className="w-full p-2 border rounded-sm text-xs" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  onClick={async () => {
+                    if (!sellerName) return;
+                    if (editingSeller) {
+                      await updateSeller(editingSeller.id, { name: sellerName, rating: parseFloat(sellerRating) });
+                    } else {
+                      await addSeller({ name: sellerName, rating: parseFloat(sellerRating) });
+                    }
+                    setSellerName('');
+                    setEditingSeller(null);
+                  }}
+                  className="bg-black text-white px-4 py-2 text-xs font-bold rounded-sm uppercase tracking-wider"
+                >
+                  {editingSeller ? 'Update Seller' : 'Create Seller'}
+                </button>
+                {editingSeller && (
+                  <button onClick={() => { setEditingSeller(null); setSellerName(''); }} className="bg-gray-200 text-gray-700 px-4 py-2 text-xs font-bold rounded-sm uppercase tracking-wider">
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {sellers.map(s => (
+                <div key={s.id} className="border border-gray-200 rounded-sm p-4 bg-white shadow-sm flex flex-col justify-between">
+                  <div>
+                    <div className="font-bold text-sm text-gray-900">{s.name}</div>
+                    <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                      <Star size={10} className="text-yellow-400 fill-yellow-400" /> {s.rating} Rating
+                    </div>
+                  </div>
+                  <div className="mt-4 flex gap-2">
+                    <button onClick={() => { setEditingSeller(s); setSellerName(s.name); setSellerRating(s.rating.toString()); }} className="flex-1 py-1.5 bg-gray-100 text-gray-700 text-[10px] font-bold rounded-sm hover:bg-gray-200">
+                      Edit
+                    </button>
+                    <button onClick={() => { if(confirm('Delete seller?')) deleteSeller(s.id); }} className="flex-1 py-1.5 bg-red-50 text-red-600 text-[10px] font-bold rounded-sm hover:bg-red-100">
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {view === 'EMAILS' && (
+        <div className="bg-white lg:shadow-sm rounded-sm lg:border border-gray-200 overflow-hidden">
+          <div className="px-4 lg:px-6 py-3 lg:py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+            <h2 className="text-sm lg:text-lg font-bold text-gray-900">Select Order for Confirmation Email</h2>
+          </div>
+          <div className="p-4 lg:p-6 space-y-4">
+            {allOrders.length > 0 ? (
+              allOrders.map((order) => (
+                <div key={order.id} className="border border-gray-200 rounded-sm p-4 flex justify-between items-center bg-gray-50">
+                  <div>
+                    <div className="font-bold text-sm">Order #{order.order_number}</div>
+                    <div className="text-xs text-gray-500">{new Date(order.created_at).toLocaleString()}</div>
+                    <div className="text-xs text-gray-500 mt-1">Total: £{parseFloat(order.total_amount).toFixed(2)} | User: {order.users?.email}</div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setSelectedOrderId(order.id);
+                      setScreen('EMAIL_CONFIRMATION');
+                    }}
+                    className="bg-black text-white px-4 py-2 text-xs font-bold rounded-sm uppercase tracking-wider"
+                  >
+                    View Email
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-10 text-gray-500 text-sm italic">No orders found.</div>
+            )}
+          </div>
         </div>
       )}
 
@@ -506,6 +668,19 @@ export const AdminScreen = ({ setScreen, goBack }: { setScreen: (s: string) => v
                         onChange={(e) => setEditImg(e.target.value)}
                         className="w-full p-2 border border-gray-300 rounded-sm text-sm focus:ring-black focus:border-black h-20 resize-none"
                      />
+                  </div>
+                  <div className="mb-4">
+                     <label className="block text-xs font-bold text-gray-700 mb-1">Seller</label>
+                     <select 
+                        value={sellerId || editModalProduct.seller_id || ''} 
+                        onChange={(e) => setSellerId(e.target.value)} 
+                        className="w-full p-2 border border-gray-300 rounded-sm text-sm focus:ring-black focus:border-black"
+                     >
+                        <option value="">Select a seller...</option>
+                        {sellers.map(s => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                     </select>
                   </div>
                   <div className="flex gap-4">
                      <div className="w-[80px] h-[106px] bg-gray-100 flex-shrink-0 border border-gray-200 rounded-sm overflow-hidden">
