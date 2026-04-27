@@ -679,17 +679,54 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
   };
 
-  const addProduct = async (product: Product) => {
-    // Implement database sync here if needed
-    setProducts((prev) => [...prev, product]);
+  const addProduct = async (product: Partial<Product>) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .insert([{
+          title: product.title,
+          base_price: product.price,
+          original_price: product.originalPrice,
+          main_image: product.img,
+          seller_id: '021e33ac-9be3-47e8-9f28-51fba0fddf86', // SHEIN MOD UUID
+          description: 'New Arrival'
+        }]);
+      
+      if (error) throw error;
+      fetchProducts();
+    } catch (err) {
+      console.error('Error adding product:', err);
+    }
   };
 
   const deleteProduct = async (id: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+    try {
+      const { error } = await supabase.from('products').delete().eq('id', id);
+      if (error) throw error;
+      fetchProducts();
+    } catch (err) {
+      console.error('Error deleting product:', err);
+    }
   };
 
   const updateProduct = async (id: string, updates: Partial<Product>) => {
-    setProducts((prev) => prev.map((p) => p.id === id ? { ...p, ...updates } : p));
+    try {
+      const dbUpdates: any = {};
+      if (updates.title) dbUpdates.title = updates.title;
+      if (updates.price !== undefined) dbUpdates.base_price = updates.price;
+      if (updates.originalPrice !== undefined) dbUpdates.original_price = updates.originalPrice;
+      if (updates.img) dbUpdates.main_image = updates.img;
+      
+      const { error } = await supabase
+        .from('products')
+        .update(dbUpdates)
+        .eq('id', id);
+      
+      if (error) throw error;
+      fetchProducts();
+    } catch (err) {
+      console.error('Error updating product:', err);
+    }
   };
 
   const addToCart = async (product: Product, quantity = 1) => {

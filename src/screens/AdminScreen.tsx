@@ -65,25 +65,11 @@ export const AdminScreen = ({ setScreen }: { setScreen: (s: string) => void }) =
     if (!title || !price || !imageUrl) return;
 
     try {
-      // 1. Ensure seller exists or use default
-      let sellerId = '75d86237-7726-47b2-990a-113543d8108a'; // Default SHEIN seller from seed
-      
-      // 2. Insert product
-      const { data: product, error: prodError } = await supabase
-        .from('products')
-        .insert([{
-          title,
-          base_price: parseFloat(price),
-          main_image: imageUrl,
-          seller_id: sellerId,
-          description: 'New Arrival'
-        }])
-        .select()
-        .single();
-
-      if (prodError) throw prodError;
-
-      if (refetchProducts) await refetchProducts();
+      await addProduct({
+        title,
+        price: parseFloat(price),
+        img: imageUrl
+      });
 
       setSavedMessage('Product created successfully in Supabase!');
       setTimeout(() => {
