@@ -1,8 +1,8 @@
-import React from 'react';
+import { ShoppingCart } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 
 export const ProductGrid = () => {
-  const { products } = useAppContext();
+  const { products, addToCart, setSelectedProduct, navigateTo } = useAppContext();
   
   return (
     <div className="grid grid-cols-2 gap-px bg-gray-100 mt-2">
@@ -12,7 +12,7 @@ export const ProductGrid = () => {
           : null;
 
         return (
-          <div key={product.id} className="bg-white p-3 flex flex-col">
+          <div key={product.id} className="bg-white p-3 flex flex-col relative group" onClick={() => { setSelectedProduct(product); navigateTo('PDP'); }}>
             <div className="aspect-[3/4] mb-2 overflow-hidden bg-gray-50 relative">
                <img 
                  src={product.img} 
@@ -34,11 +34,22 @@ export const ProductGrid = () => {
                )}
             </div>
             <span className="text-[11px] text-gray-800 line-clamp-1 mb-1 font-medium">{product.title}</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[#D92534] font-black text-[15px]">£{product.price.toFixed(2)}</span>
-              {product.originalPrice && product.originalPrice > product.price && (
-                <span className="text-[11px] text-gray-400 line-through">£{product.originalPrice.toFixed(2)}</span>
-              )}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[#D92534] font-black text-[15px]">£{product.price.toFixed(2)}</span>
+                {product.originalPrice && product.originalPrice > product.price && (
+                  <span className="text-[11px] text-gray-400 line-through">£{product.originalPrice.toFixed(2)}</span>
+                )}
+              </div>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  addToCart(product);
+                }}
+                className="p-1.5 border border-gray-100 rounded-full hover:bg-gray-50 active:scale-90 transition-transform"
+              >
+                <ShoppingCart size={14} className="text-gray-900" />
+              </button>
             </div>
             {discountPercentage && discountPercentage > 0 && (
               <div className="mt-1">

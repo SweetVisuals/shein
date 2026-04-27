@@ -30,6 +30,9 @@ export interface User {
   loyaltyPoints?: number;
   walletBalance?: number;
   cartDisplayDiscount?: string;
+  discountsCount?: number;
+  fullAddress?: string;
+  phoneNumber?: string;
 }
 
 interface AppContextType {
@@ -52,6 +55,11 @@ interface AppContextType {
   homepageSections: any[];
   updateHomepageSection: (id: string, updates: any) => Promise<void>;
   updateUser: (id: string, updates: any) => Promise<void>;
+  heroTabs: any[];
+  fetchHeroTabs: () => Promise<void>;
+  updateHeroTab: (id: string, updates: any) => Promise<void>;
+  activeHeroTab: string;
+  setActiveHeroTab: (title: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -508,11 +516,29 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [homepageSections, setHomepageSections] = useState<any[]>([]);
+  const [heroTabs, setHeroTabs] = useState<any[]>([]);
+  const [activeHeroTab, setActiveHeroTab] = useState<string>('All');
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [history, setHistory] = useState(['SPLASH']);
+  const screen = history[history.length - 1];
+
+  const navigateTo = (s: string) => {
+    if (s === 'HOME') {
+      setHistory(['HOME']);
+    } else if (history[history.length - 1] !== s) {
+      setHistory(prev => [...prev, s]);
+    }
+  };
+
+  const goBack = () => {
+    setHistory(prev => prev.length > 1 ? prev.slice(0, -1) : prev);
+  };
 
   useEffect(() => {
     fetchProducts();
     fetchCategories();
     fetchHomepageSections();
+    fetchHeroTabs();
     checkUser();
   }, []);
 
@@ -531,6 +557,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         .from('shopping_carts')
         .select('id')
         .eq('user_id', userId)
+        .limit(1)
         .maybeSingle();
 
       if (!cartData) {
@@ -556,10 +583,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           id: item.product_id,
           cartItemId: item.id,
           quantity: item.quantity,
-          title: item.products.title,
-          price: parseFloat(item.products.base_price),
-          img: item.products.main_image,
-          seller: item.products.seller_id // Simplified
+          title: item.products?.title || 'Unknown Product',
+          price: item.products?.base_price ? parseFloat(item.products.base_price) : 0,
+          img: item.products?.main_image || 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=200&auto=format&fit=crop',
+          seller: item.products?.seller_id || ''
         }));
         setCart(formatted);
       }
@@ -582,6 +609,37 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (err) {
       console.error('Error fetching orders:', err);
       return [];
+    }
+  };
+
+  const fetchHeroTabs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('hero_tabs')
+        .select('*')
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      if (data) {
+        setHeroTabs(data);
+        if (data.length > 0 && activeHeroTab === 'All') {
+          setActiveHeroTab(data[0].title);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching hero tabs:', err);
+    }
+  };
+
+  const updateHeroTab = async (id: string, updates: any) => {
+    try {
+      const { error } = await supabase
+        .from('hero_tabs')
+        .update(updates)
+        .eq('id', id);
+      if (error) throw error;
+      fetchHeroTabs();
+    } catch (err) {
+      console.error('Error updating hero tab:', err);
     }
   };
 
@@ -679,7 +737,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
             lastName: profile.last_name,
             loyaltyPoints: profile.loyalty_points,
             walletBalance: profile.wallet_balance,
-            cartDisplayDiscount: profile.cart_display_discount || '-£43.04'
+            cartDisplayDiscount: profile.cart_display_discount || '-£43.04',
+            discountsCount: profile.discounts_count || 0,
+            fullAddress: profile.full_address || '',
+            phoneNumber: profile.phone_number || ''
           });
           fetchCart(profile.id);
         }
@@ -708,7 +769,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         lastName: existingUser.last_name,
         loyaltyPoints: existingUser.loyalty_points,
         walletBalance: existingUser.wallet_balance,
-        cartDisplayDiscount: existingUser.cart_display_discount || '-£43.04'
+        cartDisplayDiscount: existingUser.cart_display_discount || '-£43.04',
+        discountsCount: existingUser.discounts_count || 0,
+        fullAddress: existingUser.full_address || '',
+        phoneNumber: existingUser.phone_number || ''
       });
     } else {
       const { data: newUser, error: createError } = await supabase
@@ -784,48 +848,113 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const addToCart = async (product: Product, quantity = 1) => {
+  const addToCart = async (product: Product, quantity: number = 1) => {
     if (!user) {
-      // Local only for guest, but user wants "real carts" so we mostly expect logged in
-      setCart(prev => [...prev, { ...product, cartItemId: Math.random().toString(36).substr(2, 9), quantity }]);
+      console.warn('addToCart: No user logged in, using local state');
+      setCart(prev => {
+        const existing = prev.find(item => item.id === product.id && item.size === product.size);
+        if (existing) {
+          return prev.map(item => item === existing ? { ...item, quantity: item.quantity + quantity } : item);
+        }
+        return [...prev, { ...product, cartItemId: 'local-' + Math.random().toString(36).substr(2, 9), quantity }];
+      });
       return;
     }
 
     try {
-      const { data: cartData } = await supabase
+      console.log('addToCart: Adding product', product.id, product.title);
+
+      // 1. Ensure user has a cart
+      let { data: cartData, error: cartError } = await supabase
         .from('shopping_carts')
         .select('id')
         .eq('user_id', user.id)
-        .single();
-
-      if (!cartData) return;
-
-      const { data: existing } = await supabase
-        .from('cart_items')
-        .select('*')
-        .eq('cart_id', cartData.id)
-        .eq('product_id', product.id)
+        .limit(1)
         .maybeSingle();
 
-      if (existing) {
-        const { error } = await supabase
+      if (cartError) throw cartError;
+
+      if (!cartData) {
+        console.log('addToCart: Creating new cart for user', user.id);
+        const { data: newCart, error: createError } = await supabase
+          .from('shopping_carts')
+          .insert([{ user_id: user.id }])
+          .select()
+          .single();
+        
+        if (createError) throw createError;
+        cartData = newCart;
+      }
+
+      // 2. Ensure product exists in DB (handle mock/JSON IDs)
+      let dbProductId = product.id;
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(product.id);
+
+      if (!isUuid) {
+        console.log('addToCart: Product ID is not a UUID, checking for existing product by title');
+        const { data: existingProd } = await supabase
+          .from('products')
+          .select('id')
+          .eq('title', product.title)
+          .limit(1)
+          .maybeSingle();
+        
+        if (existingProd) {
+          dbProductId = existingProd.id;
+        } else {
+          console.log('addToCart: Creating new product from mock data');
+          const { data: newProd, error: prodError } = await supabase
+            .from('products')
+            .insert([{
+              title: product.title,
+              base_price: product.price,
+              original_price: product.originalPrice || product.price * 1.2,
+              main_image: product.img,
+              description: 'Imported from UI section'
+            }])
+            .select()
+            .single();
+          
+          if (prodError) throw prodError;
+          dbProductId = newProd.id;
+        }
+      }
+
+      // 3. Upsert into cart_items
+      console.log('addToCart: Processing cart_items', cartData.id, dbProductId);
+      
+      const { data: existingItem } = await supabase
+        .from('cart_items')
+        .select('id, quantity')
+        .eq('cart_id', cartData.id)
+        .eq('product_id', dbProductId)
+        .maybeSingle();
+
+      if (existingItem) {
+        console.log('addToCart: Incrementing quantity for existing item');
+        const { error: updateError } = await supabase
           .from('cart_items')
-          .update({ quantity: existing.quantity + quantity })
-          .eq('id', existing.id);
-        if (error) throw error;
+          .update({ quantity: existingItem.quantity + quantity })
+          .eq('id', existingItem.id);
+        if (updateError) throw updateError;
       } else {
-        const { error } = await supabase
+        console.log('addToCart: Inserting new cart item');
+        const { error: insertError } = await supabase
           .from('cart_items')
           .insert([{
             cart_id: cartData.id,
-            product_id: product.id,
+            product_id: dbProductId,
             quantity: quantity
           }]);
-        if (error) throw error;
+        if (insertError) throw insertError;
       }
-      fetchCart(user.id);
+
+      console.log('addToCart: Success, refreshing cart');
+      await fetchCart(user.id);
     } catch (err) {
-      console.error('Error adding to cart:', err);
+      console.error('Error in addToCart:', err);
+      // Fallback to local state if DB fails so user isn't blocked
+      setCart(prev => [...prev, { ...product, cartItemId: 'error-' + Date.now(), quantity }]);
     }
   };
 
@@ -927,7 +1056,18 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       products, isLoading, addProduct, deleteProduct, updateProduct, 
       categories, updateCategory, fetchOrders,
       homepageSections, updateHomepageSection,
-      updateUser
+      updateUser,
+      heroTabs,
+      fetchHeroTabs,
+      updateHeroTab,
+      activeHeroTab,
+      setActiveHeroTab,
+      selectedProduct,
+      setSelectedProduct,
+      screen,
+      history,
+      navigateTo,
+      goBack
     }}>
       {children}
     </AppContext.Provider>

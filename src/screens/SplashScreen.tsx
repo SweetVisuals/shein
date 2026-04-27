@@ -14,7 +14,6 @@ export const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
         viewBox="0 0 100 20" 
         className="h-10 md:h-16 object-contain fill-black" 
        >
-         <text x="50%" y="15" textAnchor="middle" fontWeight="900" fontSize="16" letterSpacing="2">SHEIN</text>
        </svg>
     </div>
   );

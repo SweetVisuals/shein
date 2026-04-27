@@ -4,8 +4,8 @@ import { MobileLayout } from '../components/layout/MobileLayout';
 import { DesktopLayout } from '../components/layout/DesktopLayout';
 import { useAppContext } from '../context/AppContext';
 
-export const PLPScreen = ({ setScreen }: { setScreen: (s: string) => void }) => {
-  const { products, categories } = useAppContext();
+export const PLPScreen = ({ setScreen, goBack }: { setScreen: (s: string) => void, goBack: () => void }) => {
+  const { products, categories, addToCart } = useAppContext();
 
   const displayCategories = categories.length > 0 ? categories : [
     { name: 'Women Apparel', image_url: 'https://images.unsplash.com/photo-1515347619362-e64e9eee8821?q=80&w=100&auto=format&fit=crop' },
@@ -20,7 +20,7 @@ export const PLPScreen = ({ setScreen }: { setScreen: (s: string) => void }) => 
         <MobileLayout setScreen={setScreen}>
           {/* Header */}
           <div className="bg-white px-3 py-2 sticky top-0 z-10 border-b border-gray-100 flex gap-2 items-center">
-             <button onClick={() => setScreen('HOME')}><ChevronLeft size={28} className="text-black" /></button>
+             <button onClick={() => goBack()}><ChevronLeft size={28} className="text-black" /></button>
              <div onClick={() => setScreen('SEARCH')} className="flex-1 bg-white border border-gray-300 rounded-sm h-10 flex items-center pr-1 overflow-hidden cursor-text">
                <span className="flex-1 pl-3 text-[#4863C9] flex items-center gap-1 text-sm"><ArrowUp size={14} className="rotate-45" /> Puppy Keep</span>
                <button className="px-2"><Camera size={20} className="text-gray-400" /></button>
@@ -115,7 +115,13 @@ export const PLPScreen = ({ setScreen }: { setScreen: (s: string) => void }) => 
                             <span className="text-red-500 font-bold text-lg leading-none">£{p.price.toFixed(2)}</span>
                             {p.discount && <span className="bg-red-100 text-red-500 text-[10px] px-1 py-0.5 rounded-sm">{p.discount}</span>}
                          </div>
-                         <button className="p-1.5 border border-gray-200 rounded-full text-black hover:bg-gray-50">
+                         <button 
+                            className="p-1.5 border border-gray-200 rounded-full text-black hover:bg-gray-50"
+                            onClick={(e) => {
+                               e.stopPropagation();
+                               addToCart(p);
+                            }}
+                         >
                             <ShoppingCart size={16} />
                          </button>
                       </div>

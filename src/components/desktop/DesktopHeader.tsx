@@ -14,7 +14,6 @@ export const DesktopHeader = () => {
             viewBox="0 0 100 20" 
             className="h-full object-contain fill-white" 
            >
-             <text x="50%" y="15" textAnchor="middle" fontWeight="900" fontSize="16" letterSpacing="2">SHEIN</text>
            </svg>
         </div>
 

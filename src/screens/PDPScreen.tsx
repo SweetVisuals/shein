@@ -4,18 +4,19 @@ import { MobileLayout } from '../components/layout/MobileLayout';
 import { DesktopLayout } from '../components/layout/DesktopLayout';
 import { useAppContext } from '../context/AppContext';
 
-export const PDPScreen = ({ setScreen }: { setScreen: (s: string) => void }) => {
+export const PDPScreen = ({ setScreen, goBack }: { setScreen: (s: string) => void, goBack: () => void }) => {
   const [selectedSize, setSelectedSize] = useState('Green');
-  const { addToCart, cart } = useAppContext();
+  const { products, addToCart, selectedProduct, setSelectedProduct, navigateTo, cart } = useAppContext();
   const [showAdded, setShowAdded] = useState(false);
 
-  const product = {
+  // Use the selected product, fallback to first in DB if available, otherwise mock
+  const product = selectedProduct || (products.length > 0 ? products[0] : {
     id: '1',
     title: 'Moldable Slow Rebound Coconut Oil Handmade Squeezing Ball Stress Relief',
     price: 0.54,
     originalPrice: 0.68,
     img: 'https://images.unsplash.com/photo-1618423851509-24754a6138d4?q=80&w=600&auto=format&fit=crop',
-  };
+  });
 
   const handleAddToCart = () => {
     addToCart({ ...product, size: selectedSize });
@@ -29,7 +30,7 @@ export const PDPScreen = ({ setScreen }: { setScreen: (s: string) => void }) => 
         <MobileLayout hideNav setScreen={setScreen}>
           {/* Header */}
           <div className="bg-white px-3 py-2 sticky top-0 z-50 flex gap-3 items-center">
-             <button onClick={() => setScreen('PLP')}><ChevronLeft size={28} className="text-black" /></button>
+             <button onClick={() => goBack()}><ChevronLeft size={28} className="text-black" /></button>
              <div onClick={() => setScreen('SEARCH')} className="flex-1 bg-gray-100 rounded-full h-9 flex items-center px-3 overflow-hidden text-gray-500 cursor-text">
                Squishies
                <div className="flex-1"></div>
@@ -53,7 +54,7 @@ export const PDPScreen = ({ setScreen }: { setScreen: (s: string) => void }) => 
           {/* Image */}
           <div className="relative aspect-[4/5] bg-gray-100">
              <img 
-               src="https://images.unsplash.com/photo-1618423851509-24754a6138d4?q=80&w=600&auto=format&fit=crop" 
+               src={product.img} 
                className="w-full h-full object-cover" 
                referrerPolicy="no-referrer"
                onError={(e) => {
@@ -82,7 +83,7 @@ export const PDPScreen = ({ setScreen }: { setScreen: (s: string) => void }) => 
                       <span className="text-[8px]">Can't Miss</span>
                       <span className="text-[10px]"><span className="text-lg">🎁</span></span>
                    </div>
-                   <span className="font-bold text-sm">Save £0.14</span>
+                   <span className="font-bold text-sm">Save £{(product.originalPrice - product.price).toFixed(2)}</span>
                    <span className="text-xs">🍬</span>
                 </div>
              </div>
@@ -93,10 +94,14 @@ export const PDPScreen = ({ setScreen }: { setScreen: (s: string) => void }) => 
              <div className="flex justify-between items-end mb-2">
                 <div className="flex items-baseline gap-1">
                    <span className="text-xs text-gray-500">From</span>
-                   <span className="text-red-500 font-bold text-2xl leading-none">£0.54</span>
+                   <span className="text-red-500 font-bold text-2xl leading-none">£{product.price.toFixed(2)}</span>
                    <span className="text-gray-400 text-xs inline-flex items-center justify-center w-3 h-3 border border-gray-300 rounded-full ml-1">i</span>
-                   <span className="bg-red-500 text-white text-[10px] font-bold px-1 rounded-sm ml-1">-20%</span>
-                   <span className="text-gray-400 text-sm line-through ml-1">£0.68</span>
+                   {product.originalPrice && product.originalPrice > product.price && (
+                     <>
+                       <span className="bg-red-500 text-white text-[10px] font-bold px-1 rounded-sm ml-1">-{Math.round((1 - (product.price / product.originalPrice)) * 100)}%</span>
+                       <span className="text-gray-400 text-sm line-through ml-1">£{product.originalPrice.toFixed(2)}</span>
+                     </>
+                   )}
                 </div>
                 <div className="text-xs text-gray-500 flex items-center gap-1">
                    1.2k+ Sold <span className="text-[10px] inline-flex items-center justify-center w-3 h-3 border border-gray-300 rounded-full">i</span>
@@ -108,14 +113,14 @@ export const PDPScreen = ({ setScreen }: { setScreen: (s: string) => void }) => 
 
              <div className="flex justify-between items-start gap-4 mb-2">
                 <h1 className="font-bold text-sm text-gray-800 leading-snug flex-1">
-                   Moldable Slow Rebound Coconut Oil Handmade Squeezing Ball Stress R<span className="text-gray-400">... v</span>
+                   {product.title}
                 </h1>
                 <div className="flex items-center gap-1 text-xs">
                    <span className="text-[#FFD700]">★</span> 4.20 (5) <ChevronRight size={14} className="text-gray-400" />
                 </div>
              </div>
 
-             <div className="bg-[#fff9e6] rounded-sm p-2 flex justify-between items-center border border-[#f5e3b5] cursor-pointer">
+             <div className="bg-[#fff9e6] rounded-md p-2.5 flex justify-between items-center shadow-sm cursor-pointer">
                 <div className="flex items-center gap-2">
                    <span className="text-[#cba886] font-bold text-sm leading-none">🏆</span>
                    <span className="text-[#cba886] font-bold text-xs">#16 Bestseller <span className="text-gray-500 font-normal">in Sports & Outdoor</span></span>
@@ -176,7 +181,7 @@ export const PDPScreen = ({ setScreen }: { setScreen: (s: string) => void }) => 
                 <Heart size={24} />
              </button>
              <button onClick={handleAddToCart} className="flex-1 bg-black text-white font-bold h-10 rounded-sm italic z-10 cursor-pointer">
-                20% OFF! Add to Cart
+                ADD TO CART
              </button>
              <div className="absolute bottom-0 right-0 w-1/2 h-full bg-[#fce8e8] z-0 pointer-events-none"></div> {/* decorative red tint under button like screenshot */}
           </div>

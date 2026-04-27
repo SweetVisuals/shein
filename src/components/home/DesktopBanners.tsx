@@ -58,7 +58,7 @@ export const DesktopBanners = () => {
             }}
           />
           <div className="absolute inset-y-0 left-0 flex items-center px-6 text-white font-bold text-lg z-10 drop-shadow-md uppercase tracking-wider">
-            SHEIN CLUB
+            MEMBERS CLUB
           </div>
         </div>
       </div>

@@ -40,7 +40,18 @@ export const ProfileScreen = ({ setScreen }: { setScreen: (s: string) => void })
           <div className="bg-white px-4 py-3 flex justify-between items-center relative">
             <div className="flex items-center gap-3">
                <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100 border border-gray-100">
-                  <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=150&auto=format&fit=crop" className="w-full h-full object-cover" />
+                  <img 
+                    src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=150&auto=format&fit=crop" 
+                    className="w-full h-full object-cover" 
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      if (!target.getAttribute('data-tried-fallback')) {
+                        target.setAttribute('data-tried-fallback', 'true');
+                        target.src = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=300&auto=format&fit=crop';
+                      }
+                    }}
+                  />
                </div>
                 <div className="flex flex-col">
                    <div className="flex items-center gap-1">
@@ -69,7 +80,7 @@ export const ProfileScreen = ({ setScreen }: { setScreen: (s: string) => void })
              {/* Stats */}
              <div className="flex justify-around items-center py-5 border-b border-gray-100">
                 <div className="flex flex-col items-center">
-                   <span className="font-bold text-[17px] leading-none">3</span>
+                   <span className="font-bold text-[17px] leading-none">{user?.discountsCount || 0}</span>
                    <span className="text-[10px] text-gray-500 mt-1.5 uppercase font-bold tracking-tight">Coupons</span>
                 </div>
                  <div className="flex flex-col items-center">

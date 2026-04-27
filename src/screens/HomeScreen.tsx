@@ -18,16 +18,15 @@ export const HomeScreen = ({ setScreen }: { setScreen: (s: string) => void }) =>
     <>
       <div className="block lg:hidden">
         <MobileLayout setScreen={setScreen}>
-          <div onClick={() => setScreen('SEARCH')} className="cursor-pointer sticky top-0 z-50">
-             <MobileHeader />
-          </div>
+          <MobileHeader setScreen={setScreen} />
           <div onClick={() => setScreen('PLP')} className="cursor-pointer">
-             <MobileHeroBanner />
-             <NewUserBanner />
-             <CategoryIcons />
-             <HomeGridSections />
-             <ProductGrid />
-          </div>
+              <MobileHeroBanner />
+              <NewUserBanner />
+              <CategoryIcons />
+              <HomeGridSections />
+              <ProductGrid />
+              {!user && <SignInOverlay setScreen={setScreen} />}
+           </div>
         </MobileLayout>
       </div>
 

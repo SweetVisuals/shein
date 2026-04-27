@@ -147,30 +147,10 @@ export const CheckoutScreen = ({ setScreen }: { setScreen: (s: string) => void }
              </div>
              
              <div className="pl-6 mb-4">
-                <div className="text-[13px] text-gray-800 mb-2">Ann Aggrey-Darkoh 0541896517</div>
+                <div className="text-[13px] text-gray-800 mb-2 font-bold">{user?.name || 'Guest User'} {user?.phoneNumber || ''}</div>
                 
-                {/* Simulated redacted address lines like the screenshot */}
-                <div className="flex flex-wrap gap-x-2 gap-y-1.5 mb-1.5">
-                   <div className="h-2.5 w-6 bg-black rounded-[1px]"></div>
-                   <div className="h-2.5 w-10 bg-gray-400 rounded-[1px]"></div>
-                   <div className="h-2.5 w-4 bg-gray-100 rounded-[1px]"></div>
-                   <div className="h-2.5 w-8 bg-gray-400 rounded-[1px]"></div>
-                   <div className="h-2.5 w-3 bg-gray-500 rounded-[1px]"></div>
-                   <div className="h-2.5 w-5 bg-gray-400 rounded-[1px]"></div>
-                   <div className="h-2.5 w-4 bg-gray-400 rounded-[1px]"></div>
-                   <div className="h-2.5 w-8 bg-gray-300 rounded-[1px]"></div>
-                   <div className="h-2.5 w-4 bg-black rounded-[1px]"></div>
-                   <div className="h-2.5 w-4 bg-gray-400 rounded-[1px]"></div>
-                </div>
-                <div className="flex flex-wrap gap-x-2 gap-y-1.5 opacity-80">
-                   <div className="h-2.5 w-4 bg-gray-100 rounded-[1px]"></div>
-                   <div className="h-2.5 w-8 bg-black rounded-[1px]"></div>
-                   <div className="h-2.5 w-12 bg-black rounded-[1px]"></div>
-                   <div className="h-2.5 w-6 bg-black rounded-[1px]"></div>
-                   <div className="h-2.5 w-4 bg-gray-200 rounded-[1px]"></div>
-                   <div className="h-2.5 w-5 bg-gray-100 rounded-[1px]"></div>
-                   <div className="h-2.5 w-10 bg-black rounded-[1px]"></div>
-                   <div className="h-2.5 w-10 bg-gray-400 rounded-[1px]"></div>
+                <div className="text-[13px] text-gray-600 leading-relaxed">
+                   {user?.fullAddress || 'No address set in admin'}
                 </div>
              </div>
 
@@ -239,11 +219,11 @@ export const CheckoutScreen = ({ setScreen }: { setScreen: (s: string) => void }
                   <MapPin size={22} strokeWidth={1.5} className="text-gray-700 mt-1 self-start" />
                   <div className="flex-1 flex flex-col">
                      <div className="flex items-center gap-2 mb-1 text-[15px]">
-                        <span className="font-bold">Jjane Ddoe</span>
-                        <span className="text-gray-700">07382837822</span>
+                        <span className="font-bold">{user?.name || 'Guest User'}</span>
+                        <span className="text-gray-700">{user?.phoneNumber || ''}</span>
                      </div>
                      <p className="text-[13px] text-gray-600 leading-snug line-clamp-1">
-                        20 Limes Avenue Alfreton Derbyshire United Kingdom DE...
+                        {user?.fullAddress || 'No address set in admin'}
                      </p>
                   </div>
                   <ChevronRight size={20} className="text-gray-400 absolute right-3 top-1/2 -translate-y-1/2" />
@@ -254,7 +234,7 @@ export const CheckoutScreen = ({ setScreen }: { setScreen: (s: string) => void }
             {/* Ship from SHEIN */}
             <div className="bg-white mb-2 p-3">
                <div className="flex justify-between items-center mb-3">
-                  <h2 className="font-bold text-[15px]">Ship from SHEIN ({itemsCount})</h2>
+                  <h2 className="font-bold text-[15px]">Ship from Warehouse ({itemsCount})</h2>
                   <ChevronRight size={18} className="text-gray-400" />
                </div>
                <div className="bg-[#FFF0F2] text-red-500 text-xs px-2 py-1.5 flex items-center gap-2 mb-3 rounded-sm font-medium">
@@ -399,7 +379,7 @@ export const CheckoutScreen = ({ setScreen }: { setScreen: (s: string) => void }
             {/* SHEIN Club */}
             <div className="bg-gradient-to-br from-[#fff2e8] to-[#fff] mb-2 p-3 border border-[#fce4d4]">
                <h3 className="text-[#a55220] font-bold text-xs flex items-center gap-1 mb-1">
-                  <ShieldCheck size={14} className="fill-[#a55220] text-white" /> SHEIN CLUB
+                  <ShieldCheck size={14} className="fill-[#a55220] text-white" /> MEMBERS CLUB
                </h3>
                <p className="text-[#a55220] font-bold text-[13px] mb-2">
                   Join & Get 4 Exclusive Benefits (£75.90 Total Value){'>'}
@@ -422,7 +402,7 @@ export const CheckoutScreen = ({ setScreen }: { setScreen: (s: string) => void }
                   <UncheckedIcon />
                   <span className="text-red-500 font-bold text-[15px]">£8.99</span>
                </div>
-               <p className="text-xs text-gray-400 mt-2">By continuing, you agree to <span className="text-[#4863C9]">SHEIN Club Terms & Conditions</span>.</p>
+               <p className="text-xs text-gray-400 mt-2">By continuing, you agree to <span className="text-[#4863C9]">Club Terms & Conditions</span>.</p>
             </div>
 
             {/* Order Summary */}
@@ -511,8 +491,8 @@ export const CheckoutScreen = ({ setScreen }: { setScreen: (s: string) => void }
                </div>
                
                <p className="text-[11px] text-gray-400 text-left leading-relaxed">
-                  By placing this order you agree to SHEIN's <a href="#" className="text-[#4863C9]">Terms and Conditions</a>, 
-                  <a href="#" className="text-[#4863C9] ml-1">Division Of Obligation</a> and <a href="#" className="text-[#4863C9]">Privacy Policy</a>.
+                  By placing this order you agree to our <a href="#" className="text-[#4863C9]">Terms and Conditions</a>, 
+                  and acknowledge that you have read our <a href="#" className="text-[#4863C9]">Privacy Policy</a>.
                </p>
             </div>
           </div>
@@ -564,7 +544,7 @@ export const CheckoutScreen = ({ setScreen }: { setScreen: (s: string) => void }
                 className="w-[200px] h-12 rounded-sm font-bold flex bg-black text-white relative shadow-md"
              >
                 {/* Absolute tag on right top */}
-                <div className="absolute -top-3 -right-2 bg-[#188a42] text-white text-[10px] px-2 py-0.5 rounded-sm font-bold flex items-center gap-1 z-10 border border-white">
+                <div className="absolute -top-3 -right-2 bg-gradient-to-b from-[#188a42] to-[#126b33] text-white text-[10px] px-2 py-0.5 rounded-sm font-bold flex items-center gap-1 z-10">
                    <span className="text-[10px]">🚚</span> Free Shipping
                 </div>
 

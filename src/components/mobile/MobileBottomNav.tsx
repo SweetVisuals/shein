@@ -26,10 +26,10 @@ export const MobileBottomNav = ({ setScreen }: { setScreen?: (s: string) => void
          <span className={'text-[9px] text-gray-500 font-medium'}>Category</span>
       </div>
 
-      {/* New / Discovery */}
+      {/* Trends / Discovery */}
       <div className="flex flex-col items-center cursor-pointer relative w-[20%]" onClick={() => setScreen && setScreen('PLP')}>
          <RiCompass3Line size={24} className="mb-0.5 text-gray-500" />
-         <span className={'text-[9px] text-gray-500 font-medium'}>New</span>
+         <span className={'text-[9px] text-gray-500 font-medium'}>Trends</span>
       </div>
 
       {/* Cart */}
@@ -38,7 +38,7 @@ export const MobileBottomNav = ({ setScreen }: { setScreen?: (s: string) => void
             <div className="relative">
               <ShoppingCart size={24} strokeWidth={1.5} className="text-gray-500" />
               {cartCount > 0 && (
-                <div className="absolute -top-1 -right-1.5 bg-[#D92534] text-white text-[8px] font-bold px-1 min-w-[15px] h-[15px] rounded-full flex items-center justify-center border border-white">
+                <div className="absolute -top-1 -right-1.5 bg-[#D92534] text-white text-[8px] font-bold px-1 min-w-[15px] h-[15px] rounded-full flex items-center justify-center">
                   {cartCount}
                 </div>
               )}
@@ -52,7 +52,14 @@ export const MobileBottomNav = ({ setScreen }: { setScreen?: (s: string) => void
 
       {/* Me / Profile */}
       <div className="flex flex-col items-center cursor-pointer relative w-[20%]" onClick={() => setScreen && setScreen('PROFILE')}>
-         <VscAccount size={24} className="mb-0.5 text-gray-500" />
+         <div className="relative">
+            <VscAccount size={24} className="mb-0.5 text-gray-500" />
+            {user?.discountsCount && user.discountsCount > 0 ? (
+               <div className="absolute -top-1 -right-1 bg-[#D92534] text-white text-[8px] font-bold px-1 min-w-[14px] h-[14px] rounded-full flex items-center justify-center border border-white">
+                  {user.discountsCount}
+               </div>
+            ) : null}
+         </div>
          <span className={'text-[9px] text-gray-500 font-medium'}>Me</span>
       </div>
 

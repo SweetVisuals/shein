@@ -21,10 +21,10 @@ export const CategoryIcons = () => {
   const displayCategories = categories.length > 0 ? categories : FALLBACK_CATEGORIES;
 
   return (
-    <div className="grid grid-rows-2 grid-flow-col overflow-x-auto no-scrollbar gap-y-5 gap-x-6 px-3 py-5 bg-white">
+    <div className="grid grid-rows-2 grid-flow-col overflow-x-auto no-scrollbar gap-y-6 gap-x-[2vw] pl-4 pr-10 py-5 bg-white">
       {displayCategories.map((cat, i) => (
-        <div key={cat.id || i} className="flex flex-col items-center cursor-pointer group min-w-[64px]">
-          <div className="w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden mb-1.5 border border-transparent shadow-sm">
+        <div key={cat.id || i} className="flex flex-col items-center cursor-pointer group w-[22.22%] lg:w-[12.5%] min-w-[80px]">
+          <div className="w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden mb-1.5 bg-gray-50">
             <img 
               src={cat.image_url} 
               alt={cat.name} 
@@ -39,7 +39,7 @@ export const CategoryIcons = () => {
               }}
             />
           </div>
-          <span className="text-[10px] md:text-xs text-center text-gray-800 leading-tight font-medium line-clamp-2 w-16 px-1">
+          <span className="text-[10px] md:text-xs text-center text-gray-800 leading-tight font-medium line-clamp-2 w-full px-1">
             {cat.name}
           </span>
         </div>

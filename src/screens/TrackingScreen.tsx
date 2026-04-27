@@ -88,7 +88,7 @@ export const TrackingScreen = ({ setScreen }: { setScreen: (s: string) => void }
 
           <div className="bg-white px-4 py-4 border-b border-gray-100 flex flex-col gap-1">
              <div className="flex items-center gap-2">
-                <span className="font-black text-xl tracking-tight">{shipment?.carrier || 'SHEIN Express'}</span>
+                <span className="font-black text-xl tracking-tight">{shipment?.carrier || 'Standard Express'}</span>
              </div>
              <div className="flex items-center text-sm text-gray-700">
                 Tracking NO. <span className="font-medium mx-1">{shipment?.tracking_number || 'Pending'}</span> <Copy size={14} className="text-gray-400 cursor-pointer" />

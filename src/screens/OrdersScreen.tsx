@@ -38,7 +38,7 @@ export const OrdersScreen = ({ setScreen }: { setScreen: (s: string) => void }) 
         <div className="bg-[#f5f5f5] min-h-screen">
           {/* Header */}
           <div className="bg-white px-3 py-3 sticky top-0 z-50 flex items-center border-b border-gray-100">
-             <button onClick={() => setScreen('PROFILE')} className="absolute left-3"><ChevronLeft size={28} className="text-black" /></button>
+             <button onClick={() => setScreen('PROFILE')}><ChevronLeft size={28} className="text-black" /></button>
              <div className="flex-1 text-center font-bold text-lg">My Orders</div>
           </div>
           
@@ -62,7 +62,18 @@ export const OrdersScreen = ({ setScreen }: { setScreen: (s: string) => void }) 
                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
                       {order.order_items.map((item: any) => (
                         <div key={item.id} className="flex-shrink-0 w-[72px] h-[96px] bg-gray-50 rounded-sm overflow-hidden relative">
-                           <img src={item.products?.main_image} className="w-full h-full object-cover" />
+                           <img 
+                              src={item.products?.main_image} 
+                              className="w-full h-full object-cover" 
+                              referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                if (!target.getAttribute('data-tried-fallback')) {
+                                  target.setAttribute('data-tried-fallback', 'true');
+                                  target.src = 'https://images.unsplash.com/photo-1515347619362-e64e9eee8821?q=80&w=200&auto=format&fit=crop';
+                                }
+                              }}
+                            />
                         </div>
                       ))}
                    </div>
@@ -94,7 +105,7 @@ export const OrdersScreen = ({ setScreen }: { setScreen: (s: string) => void }) 
              )) : (
                <div className="text-center py-20">
                  <Package size={48} className="mx-auto text-gray-200 mb-4" />
-                 <p className="text-gray-400 text-sm">No orders found</p>
+                  <p className="text-gray-400 text-sm">No orders found</p>
                </div>
              )}
 
